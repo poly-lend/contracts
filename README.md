@@ -1,5 +1,8 @@
 ## PolyLend
 
+The code cloned from https://github.com/Polymarket/PolyLend
+See the [post](https://x.com/poly_lend/status/1981220184556802544) for more details
+
 **PolyLend is an experimental peer-to-peer lending protocol allowing users to borrow USDC against conditional token positions.**
 
 This smart-contract is _unaudited_ and _experimental_. Use at your own risk.
