@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.26;
+pragma solidity ^0.8.30;
 
 /// @title ERC1155TokenReceiver
 /// @notice An abstract contract required to receive ERC1155 tokens
