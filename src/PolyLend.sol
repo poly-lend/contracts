@@ -37,7 +37,7 @@ struct Offer {
 
 /// @title PolyLendEE
 /// @notice PolyLend events and errors
-interface PolyLendEE {
+interface IPolyLend {
     event LoanAccepted(uint256 id, uint256 startTime);
     event LoanCalled(uint256 id, uint256 callTime);
     event LoanOffered(uint256 id, address lender, uint256 loanAmount, uint256 rate);
@@ -70,7 +70,7 @@ interface PolyLendEE {
 /// @title PolyLend
 /// @notice A contract for lending USDC using conditional tokens as collateral
 /// @author mike@polymarket.com
-contract PolyLend is PolyLendEE, ERC1155TokenReceiver {
+contract PolyLend is IPolyLend, ERC1155TokenReceiver {
     using InterestLib for uint256;
 
     /// @notice per second rate equal to roughly 1000% APY
