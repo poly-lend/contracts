@@ -38,15 +38,15 @@ struct Offer {
 /// @title PolyLendEE
 /// @notice PolyLend events and errors
 interface IPolyLend {
-    event LoanAccepted(uint256 id, uint256 startTime);
-    event LoanCalled(uint256 id, uint256 callTime);
-    event LoanOffered(uint256 id, address lender, uint256 loanAmount, uint256 rate);
+    event LoanAccepted(uint256 indexed id, uint256 startTime);
+    event LoanCalled(uint256 indexed id, uint256 callTime);
+    event LoanOffered(uint256 indexed id, address indexed lender, uint256 loanAmount, uint256 rate);
     event LoanRepaid(uint256 id);
     event LoanRequested(
-        uint256 id, address borrower, uint256 positionId, uint256 collateralAmount, uint256 minimumDuration
+        uint256 indexed id, address indexed borrower, uint256 positionId, uint256 collateralAmount, uint256 minimumDuration
     );
-    event LoanTransferred(uint256 oldId, uint256 newId, address newLender, uint256 newRate);
-    event LoanReclaimed(uint256 id);
+    event LoanTransferred(uint256 indexed oldId, uint256 indexed newId, address  indexed newLender, uint256 newRate);
+    event LoanReclaimed(uint256 indexed id);
 
     error CollateralAmountIsZero();
     error InsufficientCollateralBalance();

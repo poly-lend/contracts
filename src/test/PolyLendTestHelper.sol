@@ -2,13 +2,13 @@
 pragma solidity ^0.8.15;
 
 import {Test, console2 as console, stdStorage, StdStorage, stdError} from "../../lib/forge-std/src/Test.sol";
-import {PolyLend, PolyLendEE, Loan, Request, Offer} from "../PolyLend.sol";
-import {USDC} from "../dev/USDC.sol";
+import {PolyLend, IPolyLend, Loan, Request, Offer} from "../PolyLend.sol";
+import {pfUSDC} from "../dev/USDC.sol";
 import {DeployLib} from "../dev/DeployLib.sol";
 import {IConditionalTokens} from "../interfaces/IConditionalTokens.sol";
 
-contract PolyLendTestHelper is Test, PolyLendEE {
-    USDC usdc;
+contract PolyLendTestHelper is Test, IPolyLend {
+    pfUSDC usdc;
     IConditionalTokens conditionalTokens;
     PolyLend polyLend;
 
@@ -23,7 +23,7 @@ contract PolyLendTestHelper is Test, PolyLendEE {
     uint256 positionId1;
 
     function setUp() public virtual {
-        usdc = new USDC();
+        usdc = new pfUSDC();
         conditionalTokens = IConditionalTokens(DeployLib.deployConditionalTokens());
         polyLend = new PolyLend(address(conditionalTokens), address(usdc));
 
