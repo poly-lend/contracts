@@ -26,7 +26,7 @@ contract PolyLendReclaimTest is PolyLendTestHelper {
 
         vm.startPrank(borrower);
         conditionalTokens.setApprovalForAll(address(polyLend), true);
-        uint256 requestId = polyLend.request(positionId0, _collateralAmount, _minimumDuration);
+        uint256 requestId = polyLend.request(borrower, positionId0, _collateralAmount, _minimumDuration);
         vm.stopPrank();
 
         vm.startPrank(lender);
@@ -72,7 +72,7 @@ contract PolyLendReclaimTest is PolyLendTestHelper {
         vm.startPrank(lender);
         vm.expectEmit();
         emit LoanReclaimed(loanId);
-        polyLend.reclaim(loanId);
+        polyLend.reclaim(lender, loanId);
         vm.stopPrank();
 
         Loan memory loan = _getLoan(loanId);
@@ -85,7 +85,7 @@ contract PolyLendReclaimTest is PolyLendTestHelper {
     function test_revert_PolyLendTransferTest_reclaim_InvalidLoan_loanDoesNotExist(uint128 _loanId) public {
         vm.startPrank(lender);
         vm.expectRevert(InvalidLoan.selector);
-        polyLend.reclaim(_loanId);
+        polyLend.reclaim(lender, _loanId);
         vm.stopPrank();
     }
 
@@ -112,9 +112,9 @@ contract PolyLendReclaimTest is PolyLendTestHelper {
         }
 
         vm.startPrank(lender);
-        polyLend.reclaim(loanId);
+        polyLend.reclaim(lender, loanId);
         vm.expectRevert(InvalidLoan.selector);
-        polyLend.reclaim(loanId);
+        polyLend.reclaim(lender, loanId);
         vm.stopPrank();
     }
 
@@ -144,7 +144,7 @@ contract PolyLendReclaimTest is PolyLendTestHelper {
 
         vm.startPrank(_caller);
         vm.expectRevert(OnlyLender.selector);
-        polyLend.reclaim(loanId);
+        polyLend.reclaim(_caller, loanId);
         vm.stopPrank();
     }
 
@@ -172,7 +172,7 @@ contract PolyLendReclaimTest is PolyLendTestHelper {
 
             vm.startPrank(borrower);
             conditionalTokens.setApprovalForAll(address(polyLend), true);
-            uint256 requestId = polyLend.request(positionId0, _collateralAmount, _minimumDuration);
+            uint256 requestId = polyLend.request(borrower, positionId0, _collateralAmount, _minimumDuration);
             vm.stopPrank();
 
             vm.startPrank(lender);
@@ -189,7 +189,7 @@ contract PolyLendReclaimTest is PolyLendTestHelper {
 
         vm.startPrank(lender);
         vm.expectRevert(LoanIsNotCalled.selector);
-        polyLend.reclaim(loanId);
+        polyLend.reclaim(lender,loanId);
         vm.stopPrank();
     }
 
@@ -217,7 +217,7 @@ contract PolyLendReclaimTest is PolyLendTestHelper {
 
         vm.startPrank(lender);
         vm.expectRevert(AuctionHasNotEnded.selector);
-        polyLend.reclaim(loanId);
+        polyLend.reclaim(lender, loanId);
         vm.stopPrank();
     }
 }

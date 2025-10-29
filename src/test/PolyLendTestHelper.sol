@@ -57,11 +57,12 @@ contract PolyLendTestHelper is Test, IPolyLend {
     }
 
     function _getRequest(uint256 _requestId) internal view returns (Request memory) {
-        (address borrower_, uint256 positionId_, uint256 collateralAmount_, uint256 minimumDuration_) =
+        (address borrower_, address borrowerWallet_, uint256 positionId_, uint256 collateralAmount_, uint256 minimumDuration_) =
             polyLend.requests(_requestId);
 
         return Request({
             borrower: borrower_,
+            borrowerWallet: borrowerWallet_,
             positionId: positionId_,
             collateralAmount: collateralAmount_,
             minimumDuration: minimumDuration_
@@ -77,6 +78,7 @@ contract PolyLendTestHelper is Test, IPolyLend {
     function _getLoan(uint256 _loanId) internal view returns (Loan memory) {
         (
             address borrower_,
+            address borrowerWallet_,
             address lender_,
             uint256 positionId_,
             uint256 collateralAmount_,
@@ -89,6 +91,7 @@ contract PolyLendTestHelper is Test, IPolyLend {
 
         return Loan({
             borrower: borrower_,
+            borrowerWallet: borrowerWallet_,
             lender: lender_,
             positionId: positionId_,
             collateralAmount: collateralAmount_,

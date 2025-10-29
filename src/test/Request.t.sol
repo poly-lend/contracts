@@ -14,8 +14,8 @@ contract PolyLendRequestTest is PolyLendTestHelper {
         conditionalTokens.setApprovalForAll(address(polyLend), true);
 
         vm.expectEmit();
-        emit LoanRequested(0, borrower, positionId0, _amount, _minimumDuration);
-        uint256 requestId = polyLend.request(positionId0, _amount, _minimumDuration);
+        emit LoanRequested(0, borrower, borrower, positionId0, _amount, _minimumDuration);
+        uint256 requestId = polyLend.request(borrower, positionId0, _amount, _minimumDuration);
         vm.stopPrank();
 
         Request memory request = _getRequest(requestId);
@@ -31,13 +31,13 @@ contract PolyLendRequestTest is PolyLendTestHelper {
     function test_revert_PolyLendRequestTest_request_CollateralAmountIsZero() public {
         vm.prank(borrower);
         vm.expectRevert(CollateralAmountIsZero.selector);
-        polyLend.request(positionId0, 0, 0);
+        polyLend.request(borrower, positionId0, 0, 0);
     }
 
     function test_revert_PolyLendRequestTest_request_InsufficientCollateralBalance() public {
         vm.prank(borrower);
         vm.expectRevert(InsufficientCollateralBalance.selector);
-        polyLend.request(positionId0, 100_000_000, 0);
+        polyLend.request(borrower, positionId0, 100_000_000, 0);
     }
 
     function test_revert_PolyLendRequestTest_request_CollateralIsNotApproved() public {
@@ -45,6 +45,6 @@ contract PolyLendRequestTest is PolyLendTestHelper {
 
         vm.prank(borrower);
         vm.expectRevert(CollateralIsNotApproved.selector);
-        polyLend.request(positionId0, 100_000_000, 0);
+        polyLend.request(borrower, positionId0, 100_000_000, 0);
     }
 }

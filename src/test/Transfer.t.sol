@@ -28,7 +28,7 @@ contract PolyLendTransferTest is PolyLendTestHelper {
 
         vm.startPrank(borrower);
         conditionalTokens.setApprovalForAll(address(polyLend), true);
-        uint256 requestId = polyLend.request(positionId0, _collateralAmount, _minimumDuration);
+        uint256 requestId = polyLend.request(borrower, positionId0, _collateralAmount, _minimumDuration);
         vm.stopPrank();
 
         vm.startPrank(lender);
@@ -82,7 +82,7 @@ contract PolyLendTransferTest is PolyLendTestHelper {
         usdc.approve(address(polyLend), amountOwed);
         vm.expectEmit();
         emit LoanTransferred(loanId, newLoanId, newLender, newRate);
-        polyLend.transfer(loanId, newRate);
+        polyLend.transfer(newLender, loanId, newRate);
         vm.stopPrank();
 
         Loan memory newLoan = _getLoan(newLoanId);
@@ -106,7 +106,7 @@ contract PolyLendTransferTest is PolyLendTestHelper {
 
         vm.startPrank(newLender);
         vm.expectRevert(InvalidLoan.selector);
-        polyLend.transfer(_loanId, _newRate);
+        polyLend.transfer(newLender, _loanId, _newRate);
         vm.stopPrank();
     }
 
@@ -128,7 +128,7 @@ contract PolyLendTransferTest is PolyLendTestHelper {
 
         vm.startPrank(borrower);
         conditionalTokens.setApprovalForAll(address(polyLend), true);
-        uint256 requestId = polyLend.request(positionId0, _collateralAmount, _minimumDuration);
+        uint256 requestId = polyLend.request(borrower, positionId0, _collateralAmount, _minimumDuration);
         vm.stopPrank();
 
         vm.startPrank(lender);
@@ -144,7 +144,7 @@ contract PolyLendTransferTest is PolyLendTestHelper {
 
         vm.startPrank(newLender);
         vm.expectRevert(LoanIsNotCalled.selector);
-        polyLend.transfer(loanId, _newRate);
+        polyLend.transfer(newLender, loanId, _newRate);
         vm.stopPrank();
     }
 
@@ -173,7 +173,7 @@ contract PolyLendTransferTest is PolyLendTestHelper {
 
         vm.startPrank(newLender);
         vm.expectRevert(AuctionHasEnded.selector);
-        polyLend.transfer(loanId, newRate);
+        polyLend.transfer(newLender, loanId, newRate);
         vm.stopPrank();
     }
 
@@ -208,7 +208,7 @@ contract PolyLendTransferTest is PolyLendTestHelper {
         vm.startPrank(newLender);
         usdc.approve(address(polyLend), amountOwed);
         vm.expectRevert(InvalidRate.selector);
-        polyLend.transfer(loanId, newRate);
+        polyLend.transfer(newLender, loanId, newRate);
         vm.stopPrank();
     }
 }

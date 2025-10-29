@@ -9,6 +9,7 @@ import {InterestLib} from "./InterestLib.sol";
 /// @notice Loan struct
 struct Loan {
     address borrower;
+    address borrowerWallet;
     address lender;
     uint256 positionId;
     uint256 collateralAmount;
@@ -22,6 +23,7 @@ struct Loan {
 /// @notice Request struct
 struct Request {
     address borrower;
+    address borrowerWallet;
     uint256 positionId;
     uint256 collateralAmount;
     uint256 minimumDuration;
@@ -43,7 +45,12 @@ interface IPolyLend {
     event LoanOffered(uint256 indexed id, address indexed lender, uint256 loanAmount, uint256 rate);
     event LoanRepaid(uint256 id);
     event LoanRequested(
-        uint256 indexed id, address indexed borrower, uint256 positionId, uint256 collateralAmount, uint256 minimumDuration
+        uint256 indexed id, 
+        address indexed borrower,
+        address indexed borrowerWallet, 
+        uint256 positionId, 
+        uint256 collateralAmount, 
+        uint256 minimumDuration
     );
     event LoanTransferred(uint256 indexed oldId, uint256 indexed newId, address  indexed newLender, uint256 newRate);
     event LoanReclaimed(uint256 indexed id);
@@ -129,7 +136,7 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
     /// @param _collateralAmount The amount of collateral
     /// @param _minimumDuration The minimum duration of the loan
     /// @return The request id
-    function request(uint256 _positionId, uint256 _collateralAmount, uint256 _minimumDuration)
+    function request(address _borrowerWallet, uint256 _positionId, uint256 _collateralAmount, uint256 _minimumDuration)
         external
         returns (uint256)
     {
@@ -137,19 +144,19 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
             revert CollateralAmountIsZero();
         }
 
-        if (conditionalTokens.balanceOf(msg.sender, _positionId) < _collateralAmount) {
+        if (conditionalTokens.balanceOf(_borrowerWallet, _positionId) < _collateralAmount) {
             revert InsufficientCollateralBalance();
         }
 
-        if (!conditionalTokens.isApprovedForAll(msg.sender, address(this))) {
+        if (!conditionalTokens.isApprovedForAll(_borrowerWallet, address(this))) {
             revert CollateralIsNotApproved();
         }
 
         uint256 requestId = nextRequestId;
         nextRequestId += 1;
 
-        requests[requestId] = Request(msg.sender, _positionId, _collateralAmount, _minimumDuration);
-        emit LoanRequested(requestId, msg.sender, _positionId, _collateralAmount, _minimumDuration);
+        requests[requestId] = Request(msg.sender, _borrowerWallet, _positionId, _collateralAmount, _minimumDuration);
+        emit LoanRequested(requestId, msg.sender, _borrowerWallet, _positionId, _collateralAmount, _minimumDuration);
 
         return requestId;
     }
@@ -220,6 +227,7 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
     function accept(uint256 _offerId) external returns (uint256) {
         uint256 requestId = offers[_offerId].requestId;
         address borrower = requests[requestId].borrower;
+        address borrowerWallet = requests[requestId].borrowerWallet;
         address lender = offers[_offerId].lender;
 
         if (borrower != msg.sender) {
@@ -240,6 +248,7 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
         // create new loan
         loans[loanId] = Loan({
             borrower: borrower,
+            borrowerWallet: borrowerWallet,
             lender: lender,
             positionId: positionId,
             collateralAmount: collateralAmount,
@@ -257,7 +266,7 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
         offers[requestId].lender = address(0);
 
         // transfer the borrowers collateral to address(this)
-        conditionalTokens.safeTransferFrom(msg.sender, address(this), positionId, collateralAmount, "");
+        conditionalTokens.safeTransferFrom(borrowerWallet, address(this), positionId, collateralAmount, "");
 
         // transfer usdc from the lender to the borrower
         usdc.transferFrom(lender, msg.sender, loanAmount);
@@ -330,9 +339,9 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
 
         // transfer usdc from the borrower to the lender
         usdc.transferFrom(msg.sender, loans[_loanId].lender, amountOwed);
-        // transfer the borrowers collateral back to the borrower
+        // transfer the borrowers collateral back to the borrower's wallet
         conditionalTokens.safeTransferFrom(
-            address(this), msg.sender, loans[_loanId].positionId, loans[_loanId].collateralAmount, ""
+            address(this), loans[_loanId].borrowerWallet, loans[_loanId].positionId, loans[_loanId].collateralAmount, ""
         );
 
         // cancel loan
@@ -349,7 +358,7 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
     /// @notice The new lender must offer a rate less than or equal to the current rate
     /// @param _loanId The loan id
     /// @param _newRate The new interest rate
-    function transfer(uint256 _loanId, uint256 _newRate) external {
+    function transfer(address _borrowerWallet, uint256 _loanId, uint256 _newRate) external {
         if (loans[_loanId].borrower == address(0)) {
             revert InvalidLoan();
         }
@@ -382,6 +391,7 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
         // create new loan
         loans[loanId] = Loan({
             borrower: borrower,
+            borrowerWallet: _borrowerWallet,
             lender: msg.sender,
             positionId: loans[_loanId].positionId,
             collateralAmount: loans[_loanId].collateralAmount,
@@ -409,7 +419,7 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
     /// @notice and the loan has not been transferred
     /// @notice The lender will receive the borrower's collateral
     /// @param _loanId The loan id
-    function reclaim(uint256 _loanId) external {
+    function reclaim(address _lenderWallet, uint256 _loanId) external {
         if (loans[_loanId].borrower == address(0)) {
             revert InvalidLoan();
         }
@@ -431,7 +441,7 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
 
         // transfer the borrower's collateral to the lender
         conditionalTokens.safeTransferFrom(
-            address(this), msg.sender, loans[_loanId].positionId, loans[_loanId].collateralAmount, ""
+            address(this), _lenderWallet, loans[_loanId].positionId, loans[_loanId].collateralAmount, ""
         );
 
         emit LoanReclaimed(_loanId);
