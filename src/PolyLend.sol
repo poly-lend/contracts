@@ -8,6 +8,7 @@ import {InterestLib} from "./InterestLib.sol";
 
 /// @notice Loan struct
 struct Loan {
+    uint256 loanId;
     address borrower;
     address borrowerWallet;
     address lender;
@@ -22,6 +23,7 @@ struct Loan {
 
 /// @notice Request struct
 struct Request {
+    uint256 requestId;
     address borrower;
     address borrowerWallet;
     uint256 positionId;
@@ -31,6 +33,7 @@ struct Request {
 
 /// @notice Offer struct
 struct Offer {
+    uint256 offerId;
     uint256 requestId;
     address lender;
     uint256 loanAmount;
@@ -155,7 +158,7 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
         uint256 requestId = nextRequestId;
         nextRequestId += 1;
 
-        requests[requestId] = Request(msg.sender, _borrowerWallet, _positionId, _collateralAmount, _minimumDuration);
+        requests[requestId] = Request(requestId, msg.sender, _borrowerWallet, _positionId, _collateralAmount, _minimumDuration);
         emit LoanRequested(requestId, msg.sender, _borrowerWallet, _positionId, _collateralAmount, _minimumDuration);
 
         return requestId;
@@ -200,7 +203,7 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
         uint256 offerId = nextOfferId;
         nextOfferId += 1;
 
-        offers[offerId] = Offer(_requestId, msg.sender, _loanAmount, _rate);
+        offers[offerId] = Offer(offerId, _requestId, msg.sender, _loanAmount, _rate);
 
         emit LoanOffered(_requestId, msg.sender, _loanAmount, _rate);
 
@@ -247,6 +250,7 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
 
         // create new loan
         loans[loanId] = Loan({
+            loanId: loanId,
             borrower: borrower,
             borrowerWallet: borrowerWallet,
             lender: lender,
@@ -390,6 +394,7 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
 
         // create new loan
         loans[loanId] = Loan({
+            loanId: loanId,
             borrower: borrower,
             borrowerWallet: _borrowerWallet,
             lender: msg.sender,
