@@ -14,7 +14,7 @@ contract PolyLendCancelRequestTest is PolyLendTestHelper {
 
         vm.startPrank(borrower);
         conditionalTokens.setApprovalForAll(address(polyLend), true);
-        requestId = polyLend.request(borrower, positionId0, _amount, _minimumDuration);
+        requestId = polyLend.request(positionId0, _amount, _minimumDuration, false);
         vm.stopPrank();
     }
 

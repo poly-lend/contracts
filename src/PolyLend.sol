@@ -3,6 +3,7 @@ pragma solidity ^0.8.30;
 
 import {ERC20} from "../lib/solady/src/tokens/ERC20.sol";
 import {IConditionalTokens} from "./interfaces/IConditionalTokens.sol";
+import {ISafeProxyFactory} from "./interfaces/ISafeProxyFactory.sol";
 import {ERC1155TokenReceiver} from "./ERC1155TokenReceiver.sol";
 import {InterestLib} from "./InterestLib.sol";
 
@@ -95,6 +96,9 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
     /// @notice The conditional tokens contract
     IConditionalTokens public immutable conditionalTokens;
 
+    /// @notice The conditional tokens contract
+    ISafeProxyFactory public immutable safeProxyFactory;
+
     /// @notice The USDC token contract
     ERC20 public immutable usdc;
 
@@ -116,9 +120,10 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
     /// @notice offers mapping
     mapping(uint256 => Offer) public offers;
 
-    constructor(address _conditionalTokens, address _usdc) {
+    constructor(address _conditionalTokens, address _usdc, address _safeProxyFactory) {
         conditionalTokens = IConditionalTokens(_conditionalTokens);
         usdc = ERC20(_usdc);
+        safeProxyFactory = ISafeProxyFactory(_safeProxyFactory);
     }
 
     /// @notice Get the amount owed on a loan
@@ -139,7 +144,7 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
     /// @param _collateralAmount The amount of collateral
     /// @param _minimumDuration The minimum duration of the loan
     /// @return The request id
-    function request(address _borrowerWallet, uint256 _positionId, uint256 _collateralAmount, uint256 _minimumDuration)
+    function request(uint256 _positionId, uint256 _collateralAmount, uint256 _minimumDuration, bool _useProxy)
         external
         returns (uint256)
     {
@@ -147,19 +152,22 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
             revert CollateralAmountIsZero();
         }
 
-        if (conditionalTokens.balanceOf(_borrowerWallet, _positionId) < _collateralAmount) {
+        address borrowerWallet = _useProxy ? safeProxyFactory.computeProxyAddress(msg.sender) : msg.sender;
+        
+
+        if (conditionalTokens.balanceOf(borrowerWallet, _positionId) < _collateralAmount) {
             revert InsufficientCollateralBalance();
         }
 
-        if (!conditionalTokens.isApprovedForAll(_borrowerWallet, address(this))) {
+        if (!conditionalTokens.isApprovedForAll(borrowerWallet, address(this))) {
             revert CollateralIsNotApproved();
         }
 
         uint256 requestId = nextRequestId;
         nextRequestId += 1;
 
-        requests[requestId] = Request(requestId, msg.sender, _borrowerWallet, _positionId, _collateralAmount, _minimumDuration);
-        emit LoanRequested(requestId, msg.sender, _borrowerWallet, _positionId, _collateralAmount, _minimumDuration);
+        requests[requestId] = Request(requestId, msg.sender, borrowerWallet, _positionId, _collateralAmount, _minimumDuration);
+        emit LoanRequested(requestId, msg.sender, borrowerWallet, _positionId, _collateralAmount, _minimumDuration);
 
         return requestId;
     }

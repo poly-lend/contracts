@@ -18,7 +18,7 @@ contract PolyLendOfferTest is PolyLendTestHelper {
 
         vm.startPrank(borrower);
         conditionalTokens.setApprovalForAll(address(polyLend), true);
-        requestId = polyLend.request(borrower, positionId0, _collateralAmount, _minimumDuration);
+        requestId = polyLend.request(positionId0, _collateralAmount, _minimumDuration, false);
         vm.stopPrank();
     }
 

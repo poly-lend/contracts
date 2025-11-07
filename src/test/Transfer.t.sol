@@ -28,7 +28,7 @@ contract PolyLendTransferTest is PolyLendTestHelper {
 
         vm.startPrank(borrower);
         conditionalTokens.setApprovalForAll(address(polyLend), true);
-        uint256 requestId = polyLend.request(borrower, positionId0, _collateralAmount, _minimumDuration);
+        uint256 requestId = polyLend.request(positionId0, _collateralAmount, _minimumDuration, false);
         vm.stopPrank();
 
         vm.startPrank(lender);
@@ -128,7 +128,7 @@ contract PolyLendTransferTest is PolyLendTestHelper {
 
         vm.startPrank(borrower);
         conditionalTokens.setApprovalForAll(address(polyLend), true);
-        uint256 requestId = polyLend.request(borrower, positionId0, _collateralAmount, _minimumDuration);
+        uint256 requestId = polyLend.request(positionId0, _collateralAmount, _minimumDuration, false);
         vm.stopPrank();
 
         vm.startPrank(lender);
