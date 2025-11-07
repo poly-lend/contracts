@@ -72,7 +72,7 @@ contract PolyLendReclaimTest is PolyLendTestHelper {
         vm.startPrank(lender);
         vm.expectEmit();
         emit LoanReclaimed(loanId);
-        polyLend.reclaim(lender, loanId);
+        polyLend.reclaim(loanId, false);
         vm.stopPrank();
 
         Loan memory loan = _getLoan(loanId);
@@ -85,7 +85,7 @@ contract PolyLendReclaimTest is PolyLendTestHelper {
     function test_revert_PolyLendTransferTest_reclaim_InvalidLoan_loanDoesNotExist(uint128 _loanId) public {
         vm.startPrank(lender);
         vm.expectRevert(InvalidLoan.selector);
-        polyLend.reclaim(lender, _loanId);
+        polyLend.reclaim(_loanId, false);
         vm.stopPrank();
     }
 
@@ -112,9 +112,9 @@ contract PolyLendReclaimTest is PolyLendTestHelper {
         }
 
         vm.startPrank(lender);
-        polyLend.reclaim(lender, loanId);
+        polyLend.reclaim(loanId, false);
         vm.expectRevert(InvalidLoan.selector);
-        polyLend.reclaim(lender, loanId);
+        polyLend.reclaim(loanId, false);
         vm.stopPrank();
     }
 
@@ -144,7 +144,7 @@ contract PolyLendReclaimTest is PolyLendTestHelper {
 
         vm.startPrank(_caller);
         vm.expectRevert(OnlyLender.selector);
-        polyLend.reclaim(_caller, loanId);
+        polyLend.reclaim(loanId, false);
         vm.stopPrank();
     }
 
@@ -189,7 +189,7 @@ contract PolyLendReclaimTest is PolyLendTestHelper {
 
         vm.startPrank(lender);
         vm.expectRevert(LoanIsNotCalled.selector);
-        polyLend.reclaim(lender,loanId);
+        polyLend.reclaim(loanId, false);
         vm.stopPrank();
     }
 
@@ -217,7 +217,7 @@ contract PolyLendReclaimTest is PolyLendTestHelper {
 
         vm.startPrank(lender);
         vm.expectRevert(AuctionHasNotEnded.selector);
-        polyLend.reclaim(lender, loanId);
+        polyLend.reclaim(loanId, false);
         vm.stopPrank();
     }
 }

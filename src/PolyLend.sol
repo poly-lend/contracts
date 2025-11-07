@@ -154,7 +154,6 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
 
         address borrowerWallet = _useProxy ? safeProxyFactory.computeProxyAddress(msg.sender) : msg.sender;
         
-
         if (conditionalTokens.balanceOf(borrowerWallet, _positionId) < _collateralAmount) {
             revert InsufficientCollateralBalance();
         }
@@ -370,7 +369,7 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
     /// @notice The new lender must offer a rate less than or equal to the current rate
     /// @param _loanId The loan id
     /// @param _newRate The new interest rate
-    function transfer(address _borrowerWallet, uint256 _loanId, uint256 _newRate) external {
+    function transfer(uint256 _loanId, uint256 _newRate) external {
         if (loans[_loanId].borrower == address(0)) {
             revert InvalidLoan();
         }
@@ -399,12 +398,13 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
         nextLoanId += 1;
 
         address borrower = loans[_loanId].borrower;
+        address borrowerWallet = loans[_loanId].borrowerWallet;
 
         // create new loan
         loans[loanId] = Loan({
             loanId: loanId,
             borrower: borrower,
-            borrowerWallet: _borrowerWallet,
+            borrowerWallet: borrowerWallet,
             lender: msg.sender,
             positionId: loans[_loanId].positionId,
             collateralAmount: loans[_loanId].collateralAmount,
@@ -432,7 +432,7 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
     /// @notice and the loan has not been transferred
     /// @notice The lender will receive the borrower's collateral
     /// @param _loanId The loan id
-    function reclaim(address _lenderWallet, uint256 _loanId) external {
+    function reclaim(uint256 _loanId, bool _useProxy) external {
         if (loans[_loanId].borrower == address(0)) {
             revert InvalidLoan();
         }
@@ -452,9 +452,11 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
         // cancel the loan
         loans[_loanId].borrower = address(0);
 
+        address lenderWallet = _useProxy ? safeProxyFactory.computeProxyAddress(msg.sender) : msg.sender;
+
         // transfer the borrower's collateral to the lender
         conditionalTokens.safeTransferFrom(
-            address(this), _lenderWallet, loans[_loanId].positionId, loans[_loanId].collateralAmount, ""
+            address(this), lenderWallet, loans[_loanId].positionId, loans[_loanId].collateralAmount, ""
         );
 
         emit LoanReclaimed(_loanId);
