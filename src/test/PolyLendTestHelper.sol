@@ -25,7 +25,7 @@ contract PolyLendTestHelper is Test, IPolyLend {
     function setUp() public virtual {
         usdc = new pfUSDC();
         conditionalTokens = IConditionalTokens(DeployLib.deployConditionalTokens());
-        polyLend = new PolyLend(address(conditionalTokens), address(usdc), 0x0000000000000000000000000000000000000000);
+        polyLend = new PolyLend(address(conditionalTokens), address(usdc), 0x0000000000000000000000000000000000000000,0x0000000000000000000000000000000000000000);
 
         oracle = vm.createWallet("oracle").addr;
         borrower = vm.createWallet("borrower").addr;
@@ -78,7 +78,7 @@ contract PolyLendTestHelper is Test, IPolyLend {
 
     function _getLoan(uint256 _loanId) internal view returns (Loan memory) {
         (
-            uint256 _loanId,
+            uint256 loanId_,
             address borrower_,
             address borrowerWallet_,
             address lender_,
@@ -92,7 +92,7 @@ contract PolyLendTestHelper is Test, IPolyLend {
         ) = polyLend.loans(_loanId);
 
         return Loan({
-            loanId: _loanId,
+            loanId: loanId_,
             borrower: borrower_,
             borrowerWallet: borrowerWallet_,
             lender: lender_,

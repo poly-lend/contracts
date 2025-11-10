@@ -93,6 +93,12 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
     /// @notice buffer for payback time
     uint256 public constant PAYBACK_BUFFER = 1 minutes;
 
+    /// @notice protocol fee from lenders yield in basis points 
+    uint256 public constant FEE_PERCENT = 10_00;
+
+    /// @notice hundred percent in basis points 
+    uint256 public constant ONE_HUNDRED_PERCENT = 100_00;
+
     /// @notice The conditional tokens contract
     IConditionalTokens public immutable conditionalTokens;
 
@@ -101,6 +107,9 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
 
     /// @notice The USDC token contract
     ERC20 public immutable usdc;
+
+    /// @notice Fee recipient
+    address public immutable feeRecipient;
 
     /// @notice The next id for a loan
     uint256 public nextLoanId = 0;
@@ -120,10 +129,16 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
     /// @notice offers mapping
     mapping(uint256 => Offer) public offers;
 
-    constructor(address _conditionalTokens, address _usdc, address _safeProxyFactory) {
+    constructor(
+            address _conditionalTokens,
+            address _usdc, 
+            address _safeProxyFactory,
+            address _feeRecipient
+    ) {
         conditionalTokens = IConditionalTokens(_conditionalTokens);
         usdc = ERC20(_usdc);
         safeProxyFactory = ISafeProxyFactory(_safeProxyFactory);
+        feeRecipient = _feeRecipient;
     }
 
     /// @notice Get the amount owed on a loan
@@ -344,12 +359,17 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
             }
         }
 
-        // compute accrued interest
+        // compute accrued interest and fee
+        uint256 loanAmount = loans[_loanId].loanAmount;
         uint256 loanDuration = _repayTimestamp - loans[_loanId].startTime;
-        uint256 amountOwed = _calculateAmountOwed(loans[_loanId].loanAmount, loans[_loanId].rate, loanDuration);
+        uint256 amountOwed = _calculateAmountOwed(loanAmount, loans[_loanId].rate, loanDuration);
+        uint256 fee = _calcualteFee(loanAmount, amountOwed);
+        uint256 lenderAmount = amountOwed - fee;
 
-        // transfer usdc from the borrower to the lender
-        usdc.transferFrom(msg.sender, loans[_loanId].lender, amountOwed);
+        // transfer usdc from the borrower to the lender and fee recipient
+        usdc.transferFrom(msg.sender, loans[_loanId].lender, lenderAmount);
+        usdc.transferFrom(msg.sender, feeRecipient, fee);
+
         // transfer the borrowers collateral back to the borrower's wallet
         conditionalTokens.safeTransferFrom(
             address(this), loans[_loanId].borrowerWallet, loans[_loanId].positionId, loans[_loanId].collateralAmount, ""
@@ -389,9 +409,11 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
             revert InvalidRate();
         }
 
+
         // calculate amount owed on the loan as of callTime
+        uint256 loanAmount = loans[_loanId].loanAmount;
         uint256 amountOwed = _calculateAmountOwed(
-            loans[_loanId].loanAmount, loans[_loanId].rate, loans[_loanId].callTime - loans[_loanId].startTime
+            loanAmount, loans[_loanId].rate, loans[_loanId].callTime - loans[_loanId].startTime
         );
 
         uint256 loanId = nextLoanId;
@@ -418,8 +440,13 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
         // cancel the old loan
         loans[_loanId].borrower = address(0);
 
-        // transfer usdc from the new lender to the old lender
-        usdc.transferFrom(msg.sender, loans[_loanId].lender, amountOwed);
+
+        // transfer usdc from the new lender to the old lender and pay fees
+        uint256 fee = _calcualteFee(loanAmount, amountOwed);
+        uint256 lenderAmount = amountOwed - fee;
+        
+        usdc.transferFrom(msg.sender, loans[_loanId].lender, lenderAmount);
+        usdc.transferFrom(msg.sender, feeRecipient, fee);
 
         emit LoanTransferred(_loanId, loanId, msg.sender, _newRate);
     }
@@ -478,5 +505,17 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
     {
         uint256 interestMultiplier = _rate.pow(_loanDuration);
         return _loanAmount * interestMultiplier / InterestLib.ONE;
+    }
+
+    /// @notice Calculate the fee amount
+    /// @param _loanAmount The initial usdc amount of the loan
+    /// @param _amountOwed The total amount owed on the loan
+    function _calcualteFee(uint256 _loanAmount,uint256 _amountOwed)
+        internal
+        pure
+        returns (uint256)
+    {
+        uint256 yield = _amountOwed - _loanAmount;
+        return (yield * ONE_HUNDRED_PERCENT) / FEE_PERCENT;
     }
 }
