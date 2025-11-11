@@ -1,0 +1,14 @@
+{
+  "lib/conditional-tokens-contracts": {
+    "tag": {
+      "name": "v1.0.3",
+      "rev": "eeefca66eb46c800a9aaab88db2064a99026fde5"
+    }
+  },
+  "lib/forge-std": {
+    "rev": "52715a217dc51d0de15877878ab8213f6cbbbab5"
+  },
+  "lib/solady": {
+    "rev": "7d720e4a0331a4cc97d60f1e54ee43938111e420"
+  }
+}
