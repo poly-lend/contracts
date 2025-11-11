@@ -2,6 +2,7 @@
 pragma solidity ^0.8.15;
 
 import {PolyLendTestHelper, Loan} from "./PolyLendTestHelper.sol";
+import {InterestLib} from "../InterestLib.sol";
 
 contract PolyLendTransferTest is PolyLendTestHelper {
     address newLender;
@@ -72,7 +73,7 @@ contract PolyLendTransferTest is PolyLendTestHelper {
             vm.warp(block.timestamp + auctionLength);
         }
 
-        uint256 newRate = bound(_newRate, 0, _getNewRate(callTime));
+        uint256 newRate = bound(_newRate, InterestLib.ONE, _getNewRate(callTime));
         uint256 newLoanId = loanId + 1;
 
         uint256 amountOwed = polyLend.getAmountOwed(loanId, callTime);

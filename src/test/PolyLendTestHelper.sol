@@ -3,6 +3,7 @@ pragma solidity ^0.8.15;
 
 import {Test, console2 as console, stdStorage, StdStorage, stdError} from "../../lib/forge-std/src/Test.sol";
 import {PolyLend, IPolyLend, Loan, Request, Offer} from "../PolyLend.sol";
+import {InterestLib} from "../InterestLib.sol";
 import {pfUSDC} from "../dev/USDC.sol";
 import {DeployLib} from "../dev/DeployLib.sol";
 import {IConditionalTokens} from "../interfaces/IConditionalTokens.sol";
@@ -107,6 +108,7 @@ contract PolyLendTestHelper is Test, IPolyLend {
     }
 
     function _getNewRate(uint256 _callTime) internal view returns (uint256) {
-        return (block.timestamp - _callTime) * polyLend.MAX_INTEREST() / polyLend.AUCTION_DURATION();
+        uint256 passedDuration = block.timestamp - _callTime;
+        return (InterestLib.ONE_THOUSAND_APY * passedDuration) / polyLend.AUCTION_DURATION() + InterestLib.ONE;
     }
 }
