@@ -516,6 +516,6 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
         returns (uint256)
     {
         uint256 yield = _amountOwed - _loanAmount;
-        return (yield * ONE_HUNDRED_PERCENT) / FEE_PERCENT;
+        return (yield * FEE_PERCENT) / ONE_HUNDRED_PERCENT;
     }
 }

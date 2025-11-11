@@ -46,6 +46,7 @@ contract PolyLendRepayTest is PolyLendTestHelper {
         vm.warp(paybackTime);
 
         uint256 amountOwed = polyLend.getAmountOwed(loanId, paybackTime);
+        uint256 fee = (amountOwed - _loanAmount) / 10 ;
 
         vm.startPrank(borrower);
         usdc.mint(borrower, amountOwed - usdc.balanceOf(borrower));
@@ -59,7 +60,7 @@ contract PolyLendRepayTest is PolyLendTestHelper {
 
         assertEq(loan.borrower, address(0));
         assertEq(usdc.balanceOf(borrower), 0);
-        assertEq(usdc.balanceOf(lender), amountOwed);
+        assertEq(usdc.balanceOf(lender), amountOwed - fee);
         assertEq(conditionalTokens.balanceOf(address(polyLend), positionId0), 0);
         assertEq(conditionalTokens.balanceOf(address(borrower), positionId0), _collateralAmount);
     }
@@ -86,6 +87,7 @@ contract PolyLendRepayTest is PolyLendTestHelper {
 
         vm.warp(block.timestamp + auctionDuration);
         uint256 amountOwed = polyLend.getAmountOwed(loanId, callTime);
+        uint256 fee = (amountOwed - _loanAmount) / 10 ;
 
         vm.startPrank(borrower);
         usdc.mint(borrower, amountOwed - usdc.balanceOf(borrower));
@@ -99,7 +101,7 @@ contract PolyLendRepayTest is PolyLendTestHelper {
 
         assertEq(loan.borrower, address(0));
         assertEq(usdc.balanceOf(borrower), 0);
-        assertEq(usdc.balanceOf(lender), amountOwed);
+        assertEq(usdc.balanceOf(lender), amountOwed - fee);
         assertEq(conditionalTokens.balanceOf(address(polyLend), positionId0), 0);
         assertEq(conditionalTokens.balanceOf(address(borrower), positionId0), _collateralAmount);
     }
@@ -122,6 +124,7 @@ contract PolyLendRepayTest is PolyLendTestHelper {
         // note that the loan _can_ be paid for a future timestamp
         uint256 repayTimestamp = bound(_repayTimestamp, block.timestamp - polyLend.PAYBACK_BUFFER(), block.timestamp);
         uint256 amountOwed = polyLend.getAmountOwed(loanId, repayTimestamp);
+        uint256 fee = (amountOwed - _loanAmount) / 10 ;
 
         vm.startPrank(borrower);
         usdc.mint(borrower, amountOwed - usdc.balanceOf(borrower));
@@ -133,7 +136,7 @@ contract PolyLendRepayTest is PolyLendTestHelper {
 
         assertEq(loan.borrower, address(0));
         assertEq(usdc.balanceOf(borrower), 0);
-        assertEq(usdc.balanceOf(lender), amountOwed);
+        assertEq(usdc.balanceOf(lender), amountOwed - fee);
         assertEq(conditionalTokens.balanceOf(address(polyLend), positionId0), 0);
         assertEq(conditionalTokens.balanceOf(address(borrower), positionId0), _collateralAmount);
     }

@@ -76,6 +76,7 @@ contract PolyLendTransferTest is PolyLendTestHelper {
         uint256 newLoanId = loanId + 1;
 
         uint256 amountOwed = polyLend.getAmountOwed(loanId, callTime);
+        uint256 fee = (amountOwed - _loanAmount) / 10 ;
         usdc.mint(newLender, amountOwed);
 
         vm.startPrank(newLender);
@@ -97,7 +98,7 @@ contract PolyLendTransferTest is PolyLendTestHelper {
         assertEq(newLoan.minimumDuration, 0);
         assertEq(newLoan.callTime, 0);
 
-        assertEq(usdc.balanceOf(lender), amountOwed);
+        assertEq(usdc.balanceOf(lender), amountOwed - fee);
         assertEq(usdc.balanceOf(newLender), 0);
     }
 
