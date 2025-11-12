@@ -44,7 +44,7 @@ struct Offer {
 /// @title PolyLendEE
 /// @notice PolyLend events and errors
 interface IPolyLend {
-    event LoanAccepted(uint256 indexed id, uint256 startTime);
+    event LoanAccepted(uint256 indexed id, uint256 indexed requestId, uint256 indexed offerId, uint256 startTime);
     event LoanCalled(uint256 indexed id, uint256 callTime);
     event LoanOffered(uint256 indexed id, address indexed lender, uint256 loanAmount, uint256 rate);
     event LoanRepaid(uint256 indexed id);
@@ -303,7 +303,7 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
         // transfer usdc from the lender to the borrower
         usdc.transferFrom(lender, msg.sender, loanAmount);
 
-        emit LoanAccepted(loanId, block.timestamp);
+        emit LoanAccepted(loanId, requestId, _offerId, block.timestamp);
 
         return loanId;
     }

@@ -140,7 +140,7 @@ contract PolyLendTransferTest is PolyLendTestHelper {
 
         vm.startPrank(borrower);
         vm.expectEmit();
-        emit LoanAccepted(requestId, block.timestamp);
+        emit LoanAccepted(0, requestId, 0, block.timestamp);
         uint256 loanId = polyLend.accept(offerId);
         vm.stopPrank();
 
