@@ -47,7 +47,7 @@ interface IPolyLend {
     event LoanAccepted(uint256 indexed id, uint256 startTime);
     event LoanCalled(uint256 indexed id, uint256 callTime);
     event LoanOffered(uint256 indexed id, address indexed lender, uint256 loanAmount, uint256 rate);
-    event LoanRepaid(uint256 id);
+    event LoanRepaid(uint256 indexed id);
     event LoanRequested(
         uint256 indexed id, 
         address indexed borrower,
@@ -56,8 +56,10 @@ interface IPolyLend {
         uint256 collateralAmount, 
         uint256 minimumDuration
     );
-    event LoanTransferred(uint256 indexed oldId, uint256 indexed newId, address  indexed newLender, uint256 newRate);
+    event LoanTransferred(uint256 indexed oldId, uint256 indexed newId, address indexed newLender, uint256 newRate);
     event LoanReclaimed(uint256 indexed id);
+    event LoanRequestCanceled(uint256 indexed id);
+    event LoanOfferCanceled(uint256 indexed id);
 
     error CollateralAmountIsZero();
     error InsufficientCollateralBalance();
@@ -194,6 +196,8 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
         }
 
         requests[_requestId].borrower = address(0);
+
+        emit LoanRequestCanceled(_requestId);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -240,6 +244,8 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
         }
 
         offers[_id].lender = address(0);
+
+        emit LoanOfferCanceled(_id);
     }
 
     /*//////////////////////////////////////////////////////////////
