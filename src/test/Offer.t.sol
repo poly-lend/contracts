@@ -34,7 +34,7 @@ contract PolyLendOfferTest is PolyLendTestHelper {
         usdc.mint(lender, _loanAmount);
         usdc.approve(address(polyLend), _loanAmount);
         vm.expectEmit();
-        emit LoanOffered(requestId, lender, _loanAmount, rate);
+        emit LoanOffered(0, requestId, lender, _loanAmount, rate);
         polyLend.offer(requestId, _loanAmount, rate);
         vm.stopPrank();
 
