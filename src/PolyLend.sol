@@ -148,8 +148,9 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
     /// @param _paybackTime The time at which the loan will be paid back
     /// @return The amount owed on the loan
     function getAmountOwed(uint256 _loanId, uint256 _paybackTime) public view returns (uint256) {
-        uint256 loanDuration = _paybackTime - loans[_loanId].startTime;
-        return _calculateAmountOwed(loans[_loanId].loanAmount, loans[_loanId].rate, loanDuration);
+        Loan memory loan = loans[_loanId];
+        uint256 loanDuration = _paybackTime - loan.startTime;
+        return _calculateAmountOwed(loan.loanAmount, loan.rate, loanDuration);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -191,11 +192,12 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
     /// @notice Cancel a loan request
     /// @param _requestId The request id
     function cancelRequest(uint256 _requestId) public {
-        if (requests[_requestId].borrower != msg.sender) {
+        Request storage _request = requests[_requestId];
+        if (_request.borrower != msg.sender) {
             revert OnlyBorrower();
         }
 
-        requests[_requestId].borrower = address(0);
+        _request.borrower = address(0);
 
         emit LoanRequestCanceled(_requestId);
     }
@@ -210,7 +212,8 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
     /// @param _rate The interest rate of the loan
     /// @return The offer id
     function offer(uint256 _requestId, uint256 _loanAmount, uint256 _rate) external returns (uint256) {
-        if (requests[_requestId].borrower == address(0)) {
+        Request storage _request = requests[_requestId];
+        if (_request.borrower == address(0)) {
             revert InvalidRequest();
         }
 
@@ -239,11 +242,12 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
     /// @notice Cancel a loan offer
     /// @param _id The offer id
     function cancelOffer(uint256 _id) public {
-        if (offers[_id].lender != msg.sender) {
+        Offer storage _offer = offers[_id];
+        if (_offer.lender != msg.sender) {
             revert OnlyLender();
         }
 
-        offers[_id].lender = address(0);
+        _offer.lender = address(0);
 
         emit LoanOfferCanceled(_id);
     }
@@ -256,10 +260,12 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
     /// @param _offerId The offer id
     /// @return The loan id
     function accept(uint256 _offerId) external returns (uint256) {
-        uint256 requestId = offers[_offerId].requestId;
-        address borrower = requests[requestId].borrower;
-        address borrowerWallet = requests[requestId].borrowerWallet;
-        address lender = offers[_offerId].lender;
+        Offer storage _offer = offers[_offerId];
+        uint256 requestId = _offer.requestId;
+        Request storage _request = requests[requestId];
+        address borrower = _request.borrower;
+        address borrowerWallet = _request.borrowerWallet;
+        address lender = _offer.lender;
 
         if (borrower != msg.sender) {
             revert OnlyBorrower();
@@ -272,9 +278,10 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
         uint256 loanId = nextLoanId;
         nextLoanId += 1;
 
-        uint256 positionId = requests[requestId].positionId;
-        uint256 collateralAmount = requests[requestId].collateralAmount;
-        uint256 loanAmount = offers[_offerId].loanAmount;
+        uint256 positionId = _request.positionId;
+        uint256 collateralAmount = _request.collateralAmount;
+        uint256 loanAmount = _offer.loanAmount;
+
 
         // create new loan
         loans[loanId] = Loan({
@@ -285,17 +292,17 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
             positionId: positionId,
             collateralAmount: collateralAmount,
             loanAmount: loanAmount,
-            rate: offers[_offerId].rate,
+            rate: _offer.rate,
             startTime: block.timestamp,
-            minimumDuration: requests[requestId].minimumDuration,
+            minimumDuration: _request.minimumDuration,
             callTime: 0
         });
 
         // invalidate the request
-        requests[requestId].borrower = address(0);
+        _request.borrower = address(0);
 
         // invalidate the offer
-        offers[requestId].lender = address(0);
+        _offer.lender = address(0);
 
         // transfer the borrowers collateral to address(this)
         conditionalTokens.safeTransferFrom(borrowerWallet, address(this), positionId, collateralAmount, "");
@@ -315,23 +322,24 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
     /// @notice Call a loan
     /// @param _loanId The id of the loan
     function call(uint256 _loanId) external {
-        if (loans[_loanId].borrower == address(0)) {
+        Loan storage loan = loans[_loanId];
+        if (loan.borrower == address(0)) {
             revert InvalidLoan();
         }
 
-        if (loans[_loanId].lender != msg.sender) {
+        if (loan.lender != msg.sender) {
             revert OnlyLender();
         }
 
-        if (block.timestamp < loans[_loanId].startTime + loans[_loanId].minimumDuration) {
+        if (block.timestamp < loan.startTime + loan.minimumDuration) {
             revert MinimumDurationHasNotPassed();
         }
 
-        if (loans[_loanId].callTime != 0) {
+        if (loan.callTime != 0) {
             revert LoanIsCalled();
         }
 
-        loans[_loanId].callTime = block.timestamp;
+        loan.callTime = block.timestamp;
 
         emit LoanCalled(_loanId, block.timestamp);
     }
@@ -347,42 +355,43 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
     /// @param _loanId The loan id
     /// @param _repayTimestamp The time at which the loan will be paid back
     function repay(uint256 _loanId, uint256 _repayTimestamp) external {
-        if (loans[_loanId].borrower != msg.sender) {
+        Loan storage loan = loans[_loanId];
+        if (loan.borrower != msg.sender) {
             revert OnlyBorrower();
         }
 
         // if the loan has not been called,
         // _repayTimestamp can be up to PAYBACK_BUFFER seconds in the past
-        if (loans[_loanId].callTime == 0) {
+        if (loan.callTime == 0) {
             if (_repayTimestamp + PAYBACK_BUFFER < block.timestamp) {
                 revert InvalidRepayTimestamp();
             }
         }
         // otherwise, the payback time must be the call time
         else {
-            if (loans[_loanId].callTime != _repayTimestamp) {
+            if (loan.callTime != _repayTimestamp) {
                 revert InvalidRepayTimestamp();
             }
         }
 
         // compute accrued interest and fee
-        uint256 loanAmount = loans[_loanId].loanAmount;
-        uint256 loanDuration = _repayTimestamp - loans[_loanId].startTime;
-        uint256 amountOwed = _calculateAmountOwed(loanAmount, loans[_loanId].rate, loanDuration);
+        uint256 loanAmount = loan.loanAmount;
+        uint256 loanDuration = _repayTimestamp - loan.startTime;
+        uint256 amountOwed = _calculateAmountOwed(loanAmount, loan.rate, loanDuration);
         uint256 fee = _calcualteFee(loanAmount, amountOwed);
         uint256 lenderAmount = amountOwed - fee;
 
         // transfer usdc from the borrower to the lender and fee recipient
-        usdc.transferFrom(msg.sender, loans[_loanId].lender, lenderAmount);
+        usdc.transferFrom(msg.sender, loan.lender, lenderAmount);
         usdc.transferFrom(msg.sender, feeRecipient, fee);
 
         // transfer the borrowers collateral back to the borrower's wallet
         conditionalTokens.safeTransferFrom(
-            address(this), loans[_loanId].borrowerWallet, loans[_loanId].positionId, loans[_loanId].collateralAmount, ""
+            address(this), loan.borrowerWallet, loan.positionId, loan.collateralAmount, ""
         );
 
         // cancel loan
-        loans[_loanId].borrower = address(0);
+        loan.borrower = address(0);
 
         emit LoanRepaid(_loanId);
     }
@@ -396,15 +405,16 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
     /// @param _loanId The loan id
     /// @param _newRate The new interest rate
     function transfer(uint256 _loanId, uint256 _newRate) external {
-        if (loans[_loanId].borrower == address(0)) {
+        Loan storage loan = loans[_loanId];
+        if (loan.borrower == address(0)) {
             revert InvalidLoan();
         }
 
-        if (loans[_loanId].callTime == 0) {
+        if (loan.callTime == 0) {
             revert LoanIsNotCalled();
         }
 
-        if (block.timestamp > loans[_loanId].callTime + AUCTION_DURATION) {
+        if (block.timestamp > loan.callTime + AUCTION_DURATION) {
             revert AuctionHasEnded();
         }
 
@@ -412,25 +422,24 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
             revert InvalidRate();
         }
 
-        uint256 currentInterestRate = (block.timestamp - loans[_loanId].callTime) * InterestLib.ONE_THOUSAND_APY / AUCTION_DURATION + InterestLib.ONE;
+        uint256 currentInterestRate = (block.timestamp - loan.callTime) * InterestLib.ONE_THOUSAND_APY / AUCTION_DURATION + InterestLib.ONE;
 
         // _newRate must be less than or equal to the current offered rate
         if (_newRate > currentInterestRate) {
             revert InvalidRate();
         }
 
-
         // calculate amount owed on the loan as of callTime
-        uint256 loanAmount = loans[_loanId].loanAmount;
+        uint256 loanAmount = loan.loanAmount;
         uint256 amountOwed = _calculateAmountOwed(
-            loanAmount, loans[_loanId].rate, loans[_loanId].callTime - loans[_loanId].startTime
+            loanAmount, loan.rate, loan.callTime - loan.startTime
         );
 
         uint256 loanId = nextLoanId;
         nextLoanId += 1;
 
-        address borrower = loans[_loanId].borrower;
-        address borrowerWallet = loans[_loanId].borrowerWallet;
+        address borrower = loan.borrower;
+        address borrowerWallet = loan.borrowerWallet;
 
         // create new loan
         loans[loanId] = Loan({
@@ -438,8 +447,8 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
             borrower: borrower,
             borrowerWallet: borrowerWallet,
             lender: msg.sender,
-            positionId: loans[_loanId].positionId,
-            collateralAmount: loans[_loanId].collateralAmount,
+            positionId: loan.positionId,
+            collateralAmount: loan.collateralAmount,
             loanAmount: amountOwed,
             rate: _newRate,
             startTime: block.timestamp,
@@ -448,14 +457,13 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
         });
 
         // cancel the old loan
-        loans[_loanId].borrower = address(0);
-
+        loan.borrower = address(0);
 
         // transfer usdc from the new lender to the old lender and pay fees
         uint256 fee = _calcualteFee(loanAmount, amountOwed);
         uint256 lenderAmount = amountOwed - fee;
         
-        usdc.transferFrom(msg.sender, loans[_loanId].lender, lenderAmount);
+        usdc.transferFrom(msg.sender, loan.lender, lenderAmount);
         usdc.transferFrom(msg.sender, feeRecipient, fee);
 
         emit LoanTransferred(_loanId, loanId, msg.sender, _newRate);
@@ -470,30 +478,31 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
     /// @notice The lender will receive the borrower's collateral
     /// @param _loanId The loan id
     function reclaim(uint256 _loanId, bool _useProxy) external {
-        if (loans[_loanId].borrower == address(0)) {
+        Loan storage loan = loans[_loanId];
+        if (loan.borrower == address(0)) {
             revert InvalidLoan();
         }
 
-        if (loans[_loanId].lender != msg.sender) {
+        if (loan.lender != msg.sender) {
             revert OnlyLender();
         }
 
-        if (loans[_loanId].callTime == 0) {
+        if (loan.callTime == 0) {
             revert LoanIsNotCalled();
         }
 
-        if (block.timestamp <= loans[_loanId].callTime + AUCTION_DURATION) {
+        if (block.timestamp <= loan.callTime + AUCTION_DURATION) {
             revert AuctionHasNotEnded();
         }
 
         // cancel the loan
-        loans[_loanId].borrower = address(0);
+        loan.borrower = address(0);
 
         address lenderWallet = _useProxy ? safeProxyFactory.computeProxyAddress(msg.sender) : msg.sender;
 
         // transfer the borrower's collateral to the lender
         conditionalTokens.safeTransferFrom(
-            address(this), lenderWallet, loans[_loanId].positionId, loans[_loanId].collateralAmount, ""
+            address(this), lenderWallet, loan.positionId, loan.collateralAmount, ""
         );
 
         emit LoanReclaimed(_loanId);
