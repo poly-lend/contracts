@@ -96,7 +96,7 @@ contract PolyLendCancelRequestTest is PolyLendTestHelper {
 
         vm.startPrank(borrower);
         polyLend.cancelRequest(requestId);
-        vm.expectRevert(OnlyBorrower.selector);
+        vm.expectRevert(InvalidRequest.selector);
         polyLend.accept(offerId);
         vm.stopPrank();
     }

@@ -267,6 +267,10 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
         address borrowerWallet = _request.borrowerWallet;
         address lender = _offer.lender;
 
+        if (borrower == address(0)) {
+            revert InvalidRequest();
+        }
+
         if (borrower != msg.sender) {
             revert OnlyBorrower();
         }
