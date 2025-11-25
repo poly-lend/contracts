@@ -45,7 +45,7 @@ struct Offer {
 interface IPolyLend {
     event LoanAccepted(uint256 indexed id, uint256 indexed offerId, uint256 startTime);
     event LoanCalled(uint256 indexed id, uint256 callTime);
-    event LoanOffered(uint256 indexed id, uint256 indexed requestId, address indexed lender, uint256 loanAmount, uint256 rate);
+    event LoanOffered(uint256 indexed id, address indexed lender, uint256 loanAmount, uint256 rate);
     event LoanRepaid(uint256 indexed id);
     event LoanTransferred(uint256 indexed oldId, uint256 indexed newId, address indexed newLender, uint256 newRate);
     event LoanReclaimed(uint256 indexed id);
@@ -158,7 +158,6 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
     /// @param _rate The interest rate of the loan
     /// @return The offer id
     function offer(
-        uint256 _requestId,
         uint256 _loanAmount,
         uint256 _rate,
         uint256[] calldata _positionIds,
@@ -209,7 +208,7 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
             perpetual: _perpetual 
         });
 
-        emit LoanOffered(offerId, _requestId, msg.sender, _loanAmount, _rate);
+        emit LoanOffered(offerId, msg.sender, _loanAmount, _rate);
 
         return offerId;
     }
