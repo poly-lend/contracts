@@ -56,7 +56,6 @@ contract PolyLendOfferTest is PolyLendTestHelper {
         uint256 _rate,
         uint256 _minimumLoanAmount,
         uint256 _duration,
-        uint32 _minimumDuration,
         uint128 _balance
     ) public {
         _setUp(_collateralAmount, _rate);
@@ -78,7 +77,6 @@ contract PolyLendOfferTest is PolyLendTestHelper {
         uint256 _rate,
         uint256 _minimumLoanAmount,
         uint256 _duration,
-        uint32 _minimumDuration,
         uint128 _allowance
     ) public {
         _setUp(_collateralAmount, _rate);
@@ -100,8 +98,7 @@ contract PolyLendOfferTest is PolyLendTestHelper {
         uint128 _loanAmount,
         uint256 _rate,
         uint256 _minimumLoanAmount,
-        uint256 _duration,
-        uint32 _minimumDuration
+        uint256 _duration
     ) public {
         _setUp(_collateralAmount, _rate);
 
@@ -122,8 +119,7 @@ contract PolyLendOfferTest is PolyLendTestHelper {
         uint128 _loanAmount,
         uint256 _rate,
         uint256 _minimumLoanAmount,
-        uint256 _duration,
-        uint32 _minimumDuration
+        uint256 _duration
     ) public {
         _setUp(_collateralAmount, _rate);
 
