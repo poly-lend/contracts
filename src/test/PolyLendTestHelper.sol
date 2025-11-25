@@ -63,7 +63,6 @@ contract PolyLendTestHelper is Test, IPolyLend {
             address lender_,
             uint256 loanAmount_,
             uint256 rate_,
-            uint256[] calldata positionIds_,
             uint256 borrowedAmount_,
             uint256 collateralAmount_,
             uint256 minimumLoanAmount_,
@@ -72,12 +71,14 @@ contract PolyLendTestHelper is Test, IPolyLend {
             bool perpetual_
         ) = polyLend.offers(_offerId);
 
+        uint256[] memory positionIds = new uint256[](2);
+        positionIds[0] = positionId0;
+        positionIds[1] = positionId1;
         return Offer({
             offerId: offerId_, 
             lender: lender_, 
             loanAmount: loanAmount_, 
             rate: rate_,
-            positionIds: positionIds_,
             borrowedAmount: borrowedAmount_,
             collateralAmount: collateralAmount_,
             minimumLoanAmount: minimumLoanAmount_,
@@ -99,7 +100,9 @@ contract PolyLendTestHelper is Test, IPolyLend {
             uint256 rate_,
             uint256 startTime_,
             uint256 minimumDuration_,
-            uint256 callTime_
+            uint256 callTime_,
+            uint256 offerId_,
+            bool isTransfered_
         ) = polyLend.loans(_loanId);
 
         return Loan({
@@ -113,7 +116,9 @@ contract PolyLendTestHelper is Test, IPolyLend {
             rate: rate_,
             startTime: startTime_,
             minimumDuration: minimumDuration_,
-            callTime: callTime_
+            callTime: callTime_,
+            offerId: offerId_,
+            isTransfered: isTransfered_
         });
     }
 

@@ -7,9 +7,9 @@ contract PolyLendCallTest is PolyLendTestHelper {
     uint256 loanId;
     uint256 rate;
 
-    function _setUp(uint128 _collateralAmount, uint128 _loanAmount, uint256 _rate, uint256 _minimumDuration) internal {
+    function _setUp(uint128 _collateralAmount, uint128 _loanAmount, uint256 _rate, uint256 _minimumLoanAmount, uint256 _duration, uint256 _minimumDuration) internal {
         vm.assume(_collateralAmount > 0);
-        vm.assume(_minimumDuration <= 60 days);
+        vm.assume(_duration <= 60 days);
 
         rate = bound(_rate, 10 ** 18 + 1, polyLend.MAX_INTEREST());
 
@@ -18,16 +18,18 @@ contract PolyLendCallTest is PolyLendTestHelper {
 
         vm.startPrank(borrower);
         conditionalTokens.setApprovalForAll(address(polyLend), true);
-        uint256 requestId = polyLend.request(positionId0, _collateralAmount, _minimumDuration, false);
         vm.stopPrank();
 
         vm.startPrank(lender);
         usdc.approve(address(polyLend), _loanAmount);
-        uint256 offerId = polyLend.offer(requestId, _loanAmount, rate);
+        uint256[] memory positionIds = new uint256[](2);
+        positionIds[0] = positionId0;
+        positionIds[1] = positionId1;
+        uint256 offerId = polyLend.offer(_loanAmount, rate, positionIds, _collateralAmount, _minimumLoanAmount, _duration, false);
         vm.stopPrank();
 
         vm.startPrank(borrower);
-        loanId = polyLend.accept(offerId);
+        loanId = polyLend.accept(offerId, _collateralAmount, _minimumDuration, positionId0, false);
         vm.stopPrank();
     }
 
@@ -35,10 +37,11 @@ contract PolyLendCallTest is PolyLendTestHelper {
         uint128 _collateralAmount,
         uint128 _loanAmount,
         uint256 _rate,
-        uint256 _minimumDuration,
-        uint256 _duration
+        uint256 _minimumLoanAmount,
+        uint256 _duration,
+        uint256 _minimumDuration
     ) public {
-        _setUp(_collateralAmount, _loanAmount, _rate, _minimumDuration);
+        _setUp(_collateralAmount, _loanAmount, _rate, _minimumLoanAmount, _duration, _minimumDuration);
         uint256 duration = bound(_duration, _minimumDuration, type(uint128).max);
 
         uint256 callTime = block.timestamp + duration;
@@ -67,10 +70,12 @@ contract PolyLendCallTest is PolyLendTestHelper {
         uint128 _collateralAmount,
         uint128 _loanAmount,
         uint256 _rate,
+        uint256 _minimumLoanAmount,
+        uint256 _duration,
         uint256 _minimumDuration,
         address _caller
     ) public {
-        _setUp(_collateralAmount, _loanAmount, _rate, _minimumDuration);
+        _setUp(_collateralAmount, _loanAmount, _rate, _minimumLoanAmount, _duration, _minimumDuration);
         vm.assume(_caller != lender);
 
         vm.startPrank(_caller);
@@ -83,13 +88,14 @@ contract PolyLendCallTest is PolyLendTestHelper {
         uint128 _collateralAmount,
         uint128 _loanAmount,
         uint256 _rate,
-        uint256 _minimumDuration,
-        uint256 _duration
+        uint256 _minimumLoanAmount,
+        uint256 _duration,
+        uint256 _minimumDuration
     ) public {
         vm.assume(_minimumDuration > 0);
         uint256 duration = bound(_duration, 0, _minimumDuration - 1);
 
-        _setUp(_collateralAmount, _loanAmount, _rate, _minimumDuration);
+        _setUp(_collateralAmount, _loanAmount, _rate, _minimumLoanAmount, _duration, _minimumDuration);
 
         vm.warp(block.timestamp + duration);
 
@@ -103,9 +109,11 @@ contract PolyLendCallTest is PolyLendTestHelper {
         uint128 _collateralAmount,
         uint128 _loanAmount,
         uint256 _rate,
+        uint256 _minimumLoanAmount,
+        uint256 _duration,
         uint256 _minimumDuration
     ) public {
-        _setUp(_collateralAmount, _loanAmount, _rate, _minimumDuration);
+        _setUp(_collateralAmount, _loanAmount, _rate, _minimumLoanAmount, _duration, _minimumDuration);
 
         vm.warp(block.timestamp + _minimumDuration);
 
@@ -121,10 +129,11 @@ contract PolyLendCallTest is PolyLendTestHelper {
         uint128 _collateralAmount,
         uint128 _loanAmount,
         uint256 _rate,
-        uint256 _minimumDuration,
-        uint256 _duration
+        uint256 _minimumLoanAmount,
+        uint256 _duration,
+        uint256 _minimumDuration
     ) public {
-        _setUp(_collateralAmount, _loanAmount, _rate, _minimumDuration);
+        _setUp(_collateralAmount, _loanAmount, _rate, _minimumLoanAmount, _duration, _minimumDuration);
         uint256 duration = bound(_duration, _minimumDuration, 60 days);
 
         uint256 paybackTime = block.timestamp + duration;

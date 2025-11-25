@@ -17,8 +17,9 @@ contract PolyLendTransferTest is PolyLendTestHelper {
         uint128 _collateralAmount,
         uint128 _loanAmount,
         uint256 _rate,
-        uint256 _minimumDuration,
-        uint256 _duration
+        uint256 _minimumLoanAmount,
+        uint256 _duration,
+        uint256 _minimumDuration
     ) internal returns (uint256) {
         vm.assume(_collateralAmount > 0);
 
@@ -29,16 +30,18 @@ contract PolyLendTransferTest is PolyLendTestHelper {
 
         vm.startPrank(borrower);
         conditionalTokens.setApprovalForAll(address(polyLend), true);
-        uint256 requestId = polyLend.request(positionId0, _collateralAmount, _minimumDuration, false);
         vm.stopPrank();
 
         vm.startPrank(lender);
         usdc.approve(address(polyLend), _loanAmount);
-        uint256 offerId = polyLend.offer(requestId, _loanAmount, rate);
+        uint256[] memory positionIds = new uint256[](2);
+        positionIds[0] = positionId0;
+        positionIds[1] = positionId1;
+        uint256 offerId = polyLend.offer(_loanAmount, rate, positionIds, _collateralAmount, _minimumLoanAmount, _duration, false);
         vm.stopPrank();
 
         vm.startPrank(borrower);
-        uint256 loanId = polyLend.accept(offerId);
+        uint256 loanId = polyLend.accept(offerId, _collateralAmount, _minimumDuration, positionId0, false);
         vm.stopPrank();
 
         vm.warp(block.timestamp + _duration);
@@ -67,7 +70,7 @@ contract PolyLendTransferTest is PolyLendTestHelper {
         {
             uint256 duration = bound(_duration, _minimumDuration, 60 days);
             uint256 auctionLength = bound(_auctionLength, 0, polyLend.AUCTION_DURATION());
-            loanId = _setUp(_collateralAmount, _loanAmount, _rate, _minimumDuration, duration);
+            loanId = _setUp(_collateralAmount, _loanAmount, _rate, 0, duration, _minimumDuration);
 
             callTime = block.timestamp;
             vm.warp(block.timestamp + auctionLength);
@@ -116,7 +119,9 @@ contract PolyLendTransferTest is PolyLendTestHelper {
         uint128 _collateralAmount,
         uint128 _loanAmount,
         uint256 _rate,
-        uint32 _minimumDuration,
+        uint256 _minimumLoanAmount,
+        uint256 _duration,
+        uint256 _minimumDuration,
         uint256 _newRate
     ) public {
         newLender = vm.createWallet("oracle").addr;
@@ -130,18 +135,20 @@ contract PolyLendTransferTest is PolyLendTestHelper {
 
         vm.startPrank(borrower);
         conditionalTokens.setApprovalForAll(address(polyLend), true);
-        uint256 requestId = polyLend.request(positionId0, _collateralAmount, _minimumDuration, false);
         vm.stopPrank();
 
         vm.startPrank(lender);
         usdc.approve(address(polyLend), _loanAmount);
-        uint256 offerId = polyLend.offer(requestId, _loanAmount, rate);
+        uint256[] memory positionIds = new uint256[](2);
+        positionIds[0] = positionId0;
+        positionIds[1] = positionId1;
+        uint256 offerId = polyLend.offer(_loanAmount, rate, positionIds, _collateralAmount, _minimumLoanAmount, _duration, false);
         vm.stopPrank();
 
         vm.startPrank(borrower);
         vm.expectEmit();
-        emit LoanAccepted(0, requestId, 0, block.timestamp);
-        uint256 loanId = polyLend.accept(offerId);
+        emit LoanAccepted(0, 0, block.timestamp);
+        uint256 loanId = polyLend.accept(offerId, _collateralAmount, _minimumDuration, positionId0, false);
         vm.stopPrank();
 
         vm.startPrank(newLender);
@@ -166,7 +173,7 @@ contract PolyLendTransferTest is PolyLendTestHelper {
 
         uint256 duration = bound(_duration, _minimumDuration, 60 days);
         uint256 auctionLength = bound(_auctionLength, polyLend.AUCTION_DURATION() + 1, type(uint32).max);
-        loanId = _setUp(_collateralAmount, _loanAmount, _rate, _minimumDuration, duration);
+        loanId = _setUp(_collateralAmount, _loanAmount, _rate, 0, duration, _minimumDuration);
 
         callTime = block.timestamp;
         vm.warp(block.timestamp + auctionLength);
@@ -196,7 +203,7 @@ contract PolyLendTransferTest is PolyLendTestHelper {
         {
             uint256 duration = bound(_duration, _minimumDuration, 60 days);
             uint256 auctionLength = bound(_auctionLength, 0, polyLend.AUCTION_DURATION());
-            loanId = _setUp(_collateralAmount, _loanAmount, _rate, _minimumDuration, duration);
+            loanId = _setUp(_collateralAmount, _loanAmount, _rate, 0, duration, _minimumDuration);
 
             callTime = block.timestamp;
             vm.warp(block.timestamp + auctionLength);

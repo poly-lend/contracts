@@ -31,7 +31,6 @@ struct Offer {
     address lender;
     uint256 loanAmount;
     uint256 rate;
-    uint256[] positionIds;
     uint256 borrowedAmount;
     uint256 collateralAmount;
     uint256 minimumLoanAmount;
@@ -49,7 +48,6 @@ interface IPolyLend {
     event LoanRepaid(uint256 indexed id);
     event LoanTransferred(uint256 indexed oldId, uint256 indexed newId, address indexed newLender, uint256 newRate);
     event LoanReclaimed(uint256 indexed id);
-    event LoanRequestCanceled(uint256 indexed id);
     event LoanOfferCanceled(uint256 indexed id);
 
     error CollateralAmountIsZero();
@@ -126,6 +124,8 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
     /// @notice offers mapping
     mapping(uint256 => Offer) public offers;
 
+    mapping(uint256 => uint256[]) public offerPositionIds;
+
     constructor(
             address _conditionalTokens,
             address _usdc, 
@@ -153,9 +153,13 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Submit a loan offer for a request
-    /// @param _requestId The request id
     /// @param _loanAmount The usdc amount of the loan
     /// @param _rate The interest rate of the loan
+    /// @param _positionIds Array of position IDs
+    /// @param _collateralAmount number of shares required as collateral
+    /// @param _minimumLoanAmount Minimum amount to borrow from this offer
+    /// @param _duration Duration to what time the loan could be borrowed
+    /// @param _perpetual IF the offer can be used again
     /// @return The offer id
     function offer(
         uint256 _loanAmount,
@@ -199,7 +203,6 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
             lender: msg.sender, 
             loanAmount: _loanAmount, 
             rate: _rate,
-            positionIds: _positionIds,
             borrowedAmount: 0,
             collateralAmount: _collateralAmount,
             minimumLoanAmount: _minimumLoanAmount,
@@ -207,6 +210,8 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
             startTime: block.timestamp,
             perpetual: _perpetual 
         });
+
+        offerPositionIds[offerId] = _positionIds;
 
         emit LoanOffered(offerId, msg.sender, _loanAmount, _rate);
 
@@ -275,8 +280,9 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
 
         bool positionFound = false;
 
-        for (uint256 i =0; i<_offer.positionIds.length; i++) {
-            positionFound = positionFound || _offer.positionIds[i] == _positionId;
+        uint256[] memory positionIds = offerPositionIds[_offer.offerId];
+        for (uint256 i =0; i < positionIds.length; i++) {
+            positionFound = positionFound || positionIds[i] == _positionId;
         }
 
         if (!positionFound) {

@@ -2,16 +2,25 @@
 pragma solidity ^0.8.15;
 
 import {PolyLendTestHelper, Loan} from "./PolyLendTestHelper.sol";
+import {InterestLib} from "../InterestLib.sol";
 
 contract PolyLendAcceptTest is PolyLendTestHelper {
     uint256 rate;
     uint256 offerId;
 
-    function _setUp(uint128 _collateralAmount, uint128 _loanAmount, uint256 _rate, uint32 _minimumDuration) internal {
+    function _setUp(
+        uint128 _collateralAmount, 
+        uint128 _loanAmount, 
+        uint256 _rate, 
+        uint256 _minimumLoanAmount, 
+        uint256 _duration,
+        uint256 _minimumDuration
+    ) internal {
         vm.assume(_collateralAmount > 0);
+        vm.assume(_duration <= 60 days);
         vm.assume(_minimumDuration <= 60 days);
 
-        rate = bound(_rate, 10 ** 18 + 1, polyLend.MAX_INTEREST());
+        rate = bound(_rate, InterestLib.ONE + 1, polyLend.MAX_INTEREST());
 
         _mintConditionalTokens(borrower, _collateralAmount, positionId0);
         usdc.mint(lender, _loanAmount);
@@ -22,7 +31,10 @@ contract PolyLendAcceptTest is PolyLendTestHelper {
 
         vm.startPrank(lender);
         usdc.approve(address(polyLend), _loanAmount);
-        offerId = polyLend.offer(requestId, _loanAmount, rate);
+        uint256[] memory positionIds = new uint256[](2);
+        positionIds[0] = positionId0;
+        positionIds[1] = positionId1;
+        offerId = polyLend.offer(_loanAmount, rate, positionIds, _collateralAmount, _minimumLoanAmount, _duration, false);
         vm.stopPrank();
     }
 
@@ -30,14 +42,16 @@ contract PolyLendAcceptTest is PolyLendTestHelper {
         uint128 _collateralAmount,
         uint128 _loanAmount,
         uint256 _rate,
+        uint256 _minimumLoanAmount,
+        uint256 _duration,
         uint32 _minimumDuration
     ) public {
-        _setUp(_collateralAmount, _loanAmount, _rate, _minimumDuration);
+        _setUp(_collateralAmount, _loanAmount, _rate, _minimumLoanAmount, _duration, _minimumDuration);
 
         vm.startPrank(borrower);
         vm.expectEmit();
-        emit LoanAccepted(0, 0, 0, block.timestamp);
-        polyLend.accept(offerId);
+        emit LoanAccepted(0, 0, block.timestamp);
+        polyLend.accept(offerId, _collateralAmount, _minimumDuration, positionId0, false);
         vm.stopPrank();
 
         Loan memory loan = _getLoan(0);
@@ -62,16 +76,18 @@ contract PolyLendAcceptTest is PolyLendTestHelper {
         uint128 _collateralAmount,
         uint128 _loanAmount,
         uint256 _rate,
+        uint256 _minimumLoanAmount,
+        uint256 _duration,
         uint32 _minimumDuration,
         address _caller
     ) public {
         vm.assume(_caller != borrower);
 
-        _setUp(_collateralAmount, _loanAmount, _rate, _minimumDuration);
+        _setUp(_collateralAmount, _loanAmount, _rate, 0, _minimumDuration, _minimumDuration);
 
         vm.startPrank(_caller);
         vm.expectRevert(OnlyBorrower.selector);
-        polyLend.accept(offerId);
+        polyLend.accept(offerId, _collateralAmount, _minimumDuration, positionId0, false);
         vm.stopPrank();
     }
 
@@ -79,16 +95,18 @@ contract PolyLendAcceptTest is PolyLendTestHelper {
         uint128 _collateralAmount,
         uint128 _loanAmount,
         uint256 _rate,
+        uint256 _minimumLoanAmount,
+        uint256 _duration,
         uint32 _minimumDuration,
         uint256 _offerId
     ) public {
         vm.assume(_offerId > 0);
 
-        _setUp(_collateralAmount, _loanAmount, _rate, _minimumDuration);
+        _setUp(_collateralAmount, _loanAmount, _rate, _minimumLoanAmount, _duration, _minimumDuration);
 
         vm.startPrank(borrower);
         vm.expectRevert(InvalidOffer.selector);
-        polyLend.accept(_offerId);
+        polyLend.accept(_offerId, _collateralAmount, _minimumDuration, positionId0, false);
         vm.stopPrank();
     }
 }

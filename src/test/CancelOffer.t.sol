@@ -8,9 +8,9 @@ contract PolyLendCancelOfferTest is PolyLendTestHelper {
     uint256 requestId;
     uint256 offerId;
 
-    function _setUp(uint128 _amount, uint128 _loanAmount, uint256 _rate, uint32 _minimumDuration) internal {
+    function _setUp(uint128 _amount, uint128 _loanAmount, uint256 _rate, uint256 _minimumLoanAmount, uint256 _duration) internal {
         vm.assume(_amount > 0);
-        vm.assume(_minimumDuration <= 60 days);
+        vm.assume(_duration <= 60 days);
 
         rate = bound(_rate, 10 ** 18 + 1, polyLend.MAX_INTEREST());
 
@@ -19,13 +19,14 @@ contract PolyLendCancelOfferTest is PolyLendTestHelper {
 
         vm.startPrank(borrower);
         conditionalTokens.setApprovalForAll(address(polyLend), true);
-
-        requestId = polyLend.request(positionId0, _amount, _minimumDuration,false);
         vm.stopPrank();
 
         vm.startPrank(lender);
         usdc.approve(address(polyLend), _loanAmount);
-        offerId = polyLend.offer(requestId, _loanAmount, rate);
+        uint256[] memory positionIds = new uint256[](2);
+        positionIds[0] = positionId0;
+        positionIds[1] = positionId1;
+        offerId = polyLend.offer(_loanAmount, rate, positionIds, _amount, _minimumLoanAmount, _duration, false);
         vm.stopPrank();
     }
 
@@ -33,9 +34,10 @@ contract PolyLendCancelOfferTest is PolyLendTestHelper {
         uint128 _amount,
         uint128 _loanAmount,
         uint256 _rate,
-        uint32 _minimumDuration
+        uint256 _minimumLoanAmount,
+        uint256 _duration
     ) public {
-        _setUp(_amount, _loanAmount, _rate, _minimumDuration);
+        _setUp(_amount, _loanAmount, _rate, _minimumLoanAmount, _duration);
 
         vm.startPrank(lender);
         polyLend.cancelOffer(offerId);
@@ -43,7 +45,6 @@ contract PolyLendCancelOfferTest is PolyLendTestHelper {
 
         Offer memory offer = _getOffer(0);
 
-        assertEq(offer.requestId, requestId);
         assertEq(offer.lender, address(0));
         assertEq(offer.loanAmount, _loanAmount);
         assertEq(offer.rate, rate);
@@ -57,7 +58,7 @@ contract PolyLendCancelOfferTest is PolyLendTestHelper {
         address _caller
     ) public {
         vm.assume(_caller != lender);
-        _setUp(_amount, _loanAmount, _rate, _minimumDuration);
+        _setUp(_amount, _loanAmount, _rate, 0, _minimumDuration);
 
         vm.startPrank(_caller);
         vm.expectRevert(OnlyLender.selector);
@@ -71,7 +72,7 @@ contract PolyLendCancelOfferTest is PolyLendTestHelper {
         uint256 _rate,
         uint32 _minimumDuration
     ) public {
-        _setUp(_amount, _loanAmount, _rate, _minimumDuration);
+        _setUp(_amount, _loanAmount, _rate, 0, _minimumDuration);
 
         vm.startPrank(lender);
         polyLend.cancelOffer(offerId);
@@ -79,7 +80,7 @@ contract PolyLendCancelOfferTest is PolyLendTestHelper {
 
         vm.startPrank(borrower);
         vm.expectRevert(InvalidOffer.selector);
-        polyLend.accept(offerId);
+        polyLend.accept(offerId, _amount, _minimumDuration, positionId0, false);
         vm.stopPrank();
     }
 
@@ -89,7 +90,7 @@ contract PolyLendCancelOfferTest is PolyLendTestHelper {
         uint256 _rate,
         uint32 _minimumDuration
     ) public {
-        _setUp(_amount, _loanAmount, _rate, _minimumDuration);
+        _setUp(_amount, _loanAmount, _rate, 0, _minimumDuration);
 
         vm.startPrank(lender);
         polyLend.cancelOffer(offerId);
