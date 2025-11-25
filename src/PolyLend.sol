@@ -20,48 +20,46 @@ struct Loan {
     uint256 startTime;
     uint256 minimumDuration;
     uint256 callTime;
+    uint256 offerId;
+    bool isTransfered;
 }
 
-/// @notice Request struct
-struct Request {
-    uint256 requestId;
-    address borrower;
-    address borrowerWallet;
-    uint256 positionId;
-    uint256 collateralAmount;
-    uint256 minimumDuration;
-}
 
 /// @notice Offer struct
 struct Offer {
     uint256 offerId;
-    uint256 requestId;
     address lender;
     uint256 loanAmount;
     uint256 rate;
+    uint256[] positionIds;
+    uint256 borrowedAmount;
+    uint256 collateralAmount;
+    uint256 minimumLoanAmount;
+    uint256 duration;
+    uint256 startTime;
+    bool perpetual;
 }
 
 /// @title PolyLendEE
 /// @notice PolyLend events and errors
 interface IPolyLend {
-    event LoanAccepted(uint256 indexed id, uint256 indexed requestId, uint256 indexed offerId, uint256 startTime);
+    event LoanAccepted(uint256 indexed id, uint256 indexed offerId, uint256 startTime);
     event LoanCalled(uint256 indexed id, uint256 callTime);
     event LoanOffered(uint256 indexed id, uint256 indexed requestId, address indexed lender, uint256 loanAmount, uint256 rate);
     event LoanRepaid(uint256 indexed id);
-    event LoanRequested(
-        uint256 indexed id, 
-        address indexed borrower,
-        address indexed borrowerWallet, 
-        uint256 positionId, 
-        uint256 collateralAmount, 
-        uint256 minimumDuration
-    );
     event LoanTransferred(uint256 indexed oldId, uint256 indexed newId, address indexed newLender, uint256 newRate);
     event LoanReclaimed(uint256 indexed id);
     event LoanRequestCanceled(uint256 indexed id);
     event LoanOfferCanceled(uint256 indexed id);
 
     error CollateralAmountIsZero();
+    error InvalidCollateralAmount();
+    error InvalidMinimumDuration();
+    error InvalidMinimumLoanAmount();
+    error InvalidLoanAmount();
+    error InvalidPosition();
+    error EmptyPositionList();
+    error LoanAmountExceedsLimit();
     error InsufficientCollateralBalance();
     error CollateralIsNotApproved();
     error OnlyBorrower();
@@ -125,9 +123,6 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
     /// @notice loans mapping
     mapping(uint256 => Loan) public loans;
 
-    /// @notice requests mapping
-    mapping(uint256 => Request) public requests;
-
     /// @notice offers mapping
     mapping(uint256 => Offer) public offers;
 
@@ -154,55 +149,6 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
     }
 
     /*//////////////////////////////////////////////////////////////
-                                REQUEST
-    //////////////////////////////////////////////////////////////*/
-
-    /// @notice Submit a request for loan offers
-    /// @param _positionId The conditional token position id
-    /// @param _collateralAmount The amount of collateral
-    /// @param _minimumDuration The minimum duration of the loan
-    /// @return The request id
-    function request(uint256 _positionId, uint256 _collateralAmount, uint256 _minimumDuration, bool _useProxy)
-        external
-        returns (uint256)
-    {
-        if (_collateralAmount == 0) {
-            revert CollateralAmountIsZero();
-        }
-
-        address borrowerWallet = _useProxy ? safeProxyFactory.computeProxyAddress(msg.sender) : msg.sender;
-        
-        if (conditionalTokens.balanceOf(borrowerWallet, _positionId) < _collateralAmount) {
-            revert InsufficientCollateralBalance();
-        }
-
-        if (!conditionalTokens.isApprovedForAll(borrowerWallet, address(this))) {
-            revert CollateralIsNotApproved();
-        }
-
-        uint256 requestId = nextRequestId;
-        nextRequestId += 1;
-
-        requests[requestId] = Request(requestId, msg.sender, borrowerWallet, _positionId, _collateralAmount, _minimumDuration);
-        emit LoanRequested(requestId, msg.sender, borrowerWallet, _positionId, _collateralAmount, _minimumDuration);
-
-        return requestId;
-    }
-
-    /// @notice Cancel a loan request
-    /// @param _requestId The request id
-    function cancelRequest(uint256 _requestId) public {
-        Request storage _request = requests[_requestId];
-        if (_request.borrower != msg.sender) {
-            revert OnlyBorrower();
-        }
-
-        _request.borrower = address(0);
-
-        emit LoanRequestCanceled(_requestId);
-    }
-
-    /*//////////////////////////////////////////////////////////////
                                  OFFER
     //////////////////////////////////////////////////////////////*/
 
@@ -211,11 +157,16 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
     /// @param _loanAmount The usdc amount of the loan
     /// @param _rate The interest rate of the loan
     /// @return The offer id
-    function offer(uint256 _requestId, uint256 _loanAmount, uint256 _rate) external returns (uint256) {
-        Request storage _request = requests[_requestId];
-        if (_request.borrower == address(0)) {
-            revert InvalidRequest();
-        }
+    function offer(
+        uint256 _requestId,
+        uint256 _loanAmount,
+        uint256 _rate,
+        uint256[] calldata _positionIds,
+        uint256 _collateralAmount,
+        uint256 _minimumLoanAmount,
+        uint256 _duration,
+        bool _perpetual
+    ) external returns (uint256) {
 
         if (usdc.balanceOf(msg.sender) < _loanAmount) {
             revert InsufficientFunds();
@@ -229,10 +180,34 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
             revert InvalidRate();
         }
 
+        if (_loanAmount == 0) {
+            revert InvalidLoanAmount();
+        }
+
+        if (_loanAmount < _minimumLoanAmount) {
+            revert InvalidMinimumLoanAmount();
+        }
+
+        if(_positionIds.length == 0) {
+            revert EmptyPositionList();
+        }
+
         uint256 offerId = nextOfferId;
         nextOfferId += 1;
 
-        offers[offerId] = Offer(offerId, _requestId, msg.sender, _loanAmount, _rate);
+        offers[offerId] = Offer({
+            offerId: offerId,
+            lender: msg.sender, 
+            loanAmount: _loanAmount, 
+            rate: _rate,
+            positionIds: _positionIds,
+            borrowedAmount: 0,
+            collateralAmount: _collateralAmount,
+            minimumLoanAmount: _minimumLoanAmount,
+            duration: _duration,
+            startTime: block.timestamp,
+            perpetual: _perpetual 
+        });
 
         emit LoanOffered(offerId, _requestId, msg.sender, _loanAmount, _rate);
 
@@ -259,62 +234,85 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
     /// @notice Accept a loan offer
     /// @param _offerId The offer id
     /// @return The loan id
-    function accept(uint256 _offerId) external returns (uint256) {
+    function accept(uint256 _offerId, uint256 _collateralAmount, uint256 _minimumDuration, uint256 _positionId, bool _useProxy) external returns (uint256) {
         Offer storage _offer = offers[_offerId];
-        uint256 requestId = _offer.requestId;
-        Request storage _request = requests[requestId];
-        address borrower = _request.borrower;
-        address borrowerWallet = _request.borrowerWallet;
+
+        address borrowerWallet = _useProxy ? safeProxyFactory.computeProxyAddress(msg.sender) : msg.sender;
         address lender = _offer.lender;
-
-        if (borrower == address(0)) {
-            revert InvalidRequest();
+        
+        if (_collateralAmount == 0) {
+            revert CollateralAmountIsZero();
         }
 
-        if (borrower != msg.sender) {
-            revert OnlyBorrower();
+        if (conditionalTokens.balanceOf(borrowerWallet, _positionId) < _collateralAmount) {
+            revert InsufficientCollateralBalance();
         }
 
+        if (!conditionalTokens.isApprovedForAll(borrowerWallet, address(this))) {
+            revert CollateralIsNotApproved();
+        }
+ 
         if (lender == address(0)) {
             revert InvalidOffer();
+        }
+
+        if (_offer.collateralAmount < _collateralAmount || _collateralAmount == 0) {
+            revert InvalidCollateralAmount();
+        }
+
+        if (block.timestamp + _minimumDuration > _offer.startTime + _offer.duration) {
+            revert InvalidMinimumDuration();
+        }
+
+        uint256 loanAmount = (_offer.collateralAmount * _offer.loanAmount) / _collateralAmount;
+
+        if (loanAmount < _offer.minimumLoanAmount || loanAmount > _offer.loanAmount) {
+            revert InvalidLoanAmount();
+        }
+
+        if (loanAmount > _offer.loanAmount - _offer.borrowedAmount) {
+            revert LoanAmountExceedsLimit();
+        }
+
+        bool positionFound = false;
+
+        for (uint256 i =0; i<_offer.positionIds.length; i++) {
+            positionFound = positionFound || _offer.positionIds[i] == _positionId;
+        }
+
+        if (!positionFound) {
+            revert InvalidPosition();
         }
 
         uint256 loanId = nextLoanId;
         nextLoanId += 1;
 
-        uint256 positionId = _request.positionId;
-        uint256 collateralAmount = _request.collateralAmount;
-        uint256 loanAmount = _offer.loanAmount;
-
-
         // create new loan
         loans[loanId] = Loan({
             loanId: loanId,
-            borrower: borrower,
+            borrower: msg.sender,
             borrowerWallet: borrowerWallet,
             lender: lender,
-            positionId: positionId,
-            collateralAmount: collateralAmount,
+            positionId: _positionId,
+            collateralAmount: _collateralAmount,
             loanAmount: loanAmount,
             rate: _offer.rate,
             startTime: block.timestamp,
-            minimumDuration: _request.minimumDuration,
-            callTime: 0
+            minimumDuration: _minimumDuration,
+            callTime: 0,
+            offerId: _offerId,
+            isTransfered: false
         });
 
-        // invalidate the request
-        _request.borrower = address(0);
-
-        // invalidate the offer
-        _offer.lender = address(0);
+        _offer.borrowedAmount += loanAmount;
 
         // transfer the borrowers collateral to address(this)
-        conditionalTokens.safeTransferFrom(borrowerWallet, address(this), positionId, collateralAmount, "");
+        conditionalTokens.safeTransferFrom(borrowerWallet, address(this), _positionId, _collateralAmount, "");
 
         // transfer usdc from the lender to the borrower
         usdc.transferFrom(lender, msg.sender, loanAmount);
 
-        emit LoanAccepted(loanId, requestId, _offerId, block.timestamp);
+        emit LoanAccepted(loanId, _offerId, block.timestamp);
 
         return loanId;
     }
@@ -385,6 +383,14 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
         uint256 fee = _calcualteFee(loanAmount, amountOwed);
         uint256 lenderAmount = amountOwed - fee;
 
+        
+        if (!loan.isTransfered) {
+            Offer storage loanOffer = offers[loan.offerId];
+            if  (loanOffer.perpetual) {
+                loanOffer.borrowedAmount -= loan.loanAmount;
+            }
+        }
+
         // transfer usdc from the borrower to the lender and fee recipient
         usdc.transferFrom(msg.sender, loan.lender, lenderAmount);
         usdc.transferFrom(msg.sender, feeRecipient, fee);
@@ -444,6 +450,7 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
 
         address borrower = loan.borrower;
         address borrowerWallet = loan.borrowerWallet;
+        bool isTransfered = loan.isTransfered;
 
         // create new loan
         loans[loanId] = Loan({
@@ -457,8 +464,17 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
             rate: _newRate,
             startTime: block.timestamp,
             minimumDuration: 0,
-            callTime: 0
+            callTime: 0,
+            offerId: loan.offerId,
+            isTransfered: true
         });
+
+        if (!isTransfered) {
+            Offer storage loanOffer = offers[loan.offerId];
+            if  (loanOffer.perpetual) {
+                loanOffer.borrowedAmount -= loan.loanAmount;
+            }
+        }
 
         // cancel the old loan
         loan.borrower = address(0);

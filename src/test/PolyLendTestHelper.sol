@@ -2,7 +2,7 @@
 pragma solidity ^0.8.15;
 
 import {Test, console2 as console, stdStorage, StdStorage, stdError} from "../../lib/forge-std/src/Test.sol";
-import {PolyLend, IPolyLend, Loan, Request, Offer} from "../PolyLend.sol";
+import {PolyLend, IPolyLend, Loan, Offer} from "../PolyLend.sol";
 import {InterestLib} from "../InterestLib.sol";
 import {pfUSDC} from "../dev/USDC.sol";
 import {DeployLib} from "../dev/DeployLib.sol";
@@ -55,20 +55,6 @@ contract PolyLendTestHelper is Test, IPolyLend {
         conditionalTokens.splitPosition(address(usdc), bytes32(0), conditionId, partition, _amount);
         conditionalTokens.safeTransferFrom(splitter, _to, _positionId, _amount, "");
         vm.stopPrank();
-    }
-
-    function _getRequest(uint256 _requestId) internal view returns (Request memory) {
-        (uint256 requestId_, address borrower_, address borrowerWallet_, uint256 positionId_, uint256 collateralAmount_, uint256 minimumDuration_) =
-            polyLend.requests(_requestId);
-
-        return Request({
-            requestId: requestId_,
-            borrower: borrower_,
-            borrowerWallet: borrowerWallet_,
-            positionId: positionId_,
-            collateralAmount: collateralAmount_,
-            minimumDuration: minimumDuration_
-        });
     }
 
     function _getOffer(uint256 _offerId) internal view returns (Offer memory) {
