@@ -391,7 +391,7 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
         uint256 loanAmount = loan.loanAmount;
         uint256 loanDuration = _repayTimestamp - loan.startTime;
         uint256 amountOwed = _calculateAmountOwed(loanAmount, loan.rate, loanDuration);
-        uint256 fee = _calcualteFee(loanAmount, amountOwed);
+        uint256 fee = _calculateFee(loanAmount, amountOwed);
         uint256 lenderAmount = amountOwed - fee;
 
         
@@ -491,7 +491,7 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
         loan.borrower = address(0);
 
         // transfer usdc from the new lender to the old lender and pay fees
-        uint256 fee = _calcualteFee(loanAmount, amountOwed);
+        uint256 fee = _calculateFee(loanAmount, amountOwed);
         uint256 lenderAmount = amountOwed - fee;
         
         usdc.transferFrom(msg.sender, loan.lender, lenderAmount);
@@ -560,11 +560,12 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
     /// @notice Calculate the fee amount
     /// @param _loanAmount The initial usdc amount of the loan
     /// @param _amountOwed The total amount owed on the loan
-    function _calcualteFee(uint256 _loanAmount,uint256 _amountOwed)
+    function _calculateFee(uint256 _loanAmount,uint256 _amountOwed)
         internal
         pure
         returns (uint256)
     {
+        if (_amountOwed <= _loanAmount) return 0;
         uint256 yield = _amountOwed - _loanAmount;
         return (yield * FEE_PERCENT) / ONE_HUNDRED_PERCENT;
     }
