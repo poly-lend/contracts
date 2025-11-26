@@ -11,6 +11,7 @@ contract PolyLendRepayTest is PolyLendTestHelper {
         vm.assume(_collateralAmount > 0);
         vm.assume(_duration <= 60 days);
         vm.assume(_loanAmount > 1_000_000);
+        vm.assume(_minimumLoanAmount < _loanAmount);
 
         rate = bound(_rate, 10 ** 18 + 1, polyLend.MAX_INTEREST());
 

@@ -21,7 +21,10 @@ contract PolyLendTransferTest is PolyLendTestHelper {
         uint256 _duration,
         uint256 _minimumDuration
     ) internal returns (uint256) {
+
+        vm.assume(_loanAmount > 0);
         vm.assume(_collateralAmount > 0);
+        vm.assume(_minimumLoanAmount < _loanAmount);
 
         rate = bound(_rate, 10 ** 18 + 1, polyLend.MAX_INTEREST());
 

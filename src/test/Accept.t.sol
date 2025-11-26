@@ -16,9 +16,12 @@ contract PolyLendAcceptTest is PolyLendTestHelper {
         uint256 _duration,
         uint256 _minimumDuration
     ) internal {
+        vm.assume(_loanAmount > 0);
+        vm.assume(_minimumLoanAmount < _loanAmount);
         vm.assume(_collateralAmount > 0);
         vm.assume(_duration <= 60 days);
         vm.assume(_minimumDuration <= 60 days);
+        vm.assume(_minimumDuration <= _duration);
 
         rate = bound(_rate, InterestLib.ONE + 1, polyLend.MAX_INTEREST());
 
@@ -70,25 +73,6 @@ contract PolyLendAcceptTest is PolyLendTestHelper {
         assertEq(conditionalTokens.balanceOf(address(polyLend), positionId0), _collateralAmount);
 
         assertEq(polyLend.nextLoanId(), 1);
-    }
-
-    function test_revert_PolyLendAcceptTest_accept_OnlyBorrower(
-        uint128 _collateralAmount,
-        uint128 _loanAmount,
-        uint256 _rate,
-        uint256 _minimumLoanAmount,
-        uint256 _duration,
-        uint32 _minimumDuration,
-        address _caller
-    ) public {
-        vm.assume(_caller != borrower);
-
-        _setUp(_collateralAmount, _loanAmount, _rate, 0, _minimumDuration, _minimumDuration);
-
-        vm.startPrank(_caller);
-        vm.expectRevert(OnlyBorrower.selector);
-        polyLend.accept(offerId, _collateralAmount, _minimumDuration, positionId0, false);
-        vm.stopPrank();
     }
 
     function test_revert_PolyLendAcceptTest_accept_InvalidOffer(

@@ -10,6 +10,8 @@ contract PolyLendCancelOfferTest is PolyLendTestHelper {
 
     function _setUp(uint128 _amount, uint128 _loanAmount, uint256 _rate, uint256 _minimumLoanAmount, uint256 _duration) internal {
         vm.assume(_amount > 0);
+        vm.assume(_loanAmount > 0);
+        vm.assume(_minimumLoanAmount < _loanAmount);
         vm.assume(_duration <= 60 days);
 
         rate = bound(_rate, 10 ** 18 + 1, polyLend.MAX_INTEREST());
