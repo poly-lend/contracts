@@ -5,6 +5,7 @@ import {PolyLendTestHelper, Offer} from "./PolyLendTestHelper.sol";
 
 contract PolyLendOfferTest is PolyLendTestHelper {
     uint256 rate;
+    uint256[] allPositionIds;
 
 
     function _setUp(
@@ -18,6 +19,9 @@ contract PolyLendOfferTest is PolyLendTestHelper {
         vm.startPrank(borrower);
         conditionalTokens.setApprovalForAll(address(polyLend), true);
         vm.stopPrank();
+        allPositionIds = new uint256[](2);
+        allPositionIds[0] = positionId0;
+        allPositionIds[1] = positionId1;
     }
 
     function test_PolyLendOfferTest_offer(
@@ -36,13 +40,9 @@ contract PolyLendOfferTest is PolyLendTestHelper {
         usdc.mint(lender, _loanAmount);
         usdc.approve(address(polyLend), _loanAmount);
         
-        uint256[] memory positionIds = new uint256[](2);
-        positionIds[0] = positionId0;
-        positionIds[1] = positionId1;
-
         vm.expectEmit();
         emit LoanOffered(0, lender, _loanAmount, rate);
-        polyLend.offer(_loanAmount, rate, positionIds, _collateralAmount, _minimumLoanAmount, _duration, false);
+        polyLend.offer(_loanAmount, rate, allPositionIds, _collateralAmount, _minimumLoanAmount, _duration, false);
         vm.stopPrank();
 
         Offer memory offer = _getOffer(0);
@@ -72,14 +72,13 @@ contract PolyLendOfferTest is PolyLendTestHelper {
     ) public {
         _setUp(_collateralAmount, _rate);
 
+        vm.assume(_loanAmount > 0);
+
         uint256 balance = bound(_balance, 0, _loanAmount - 1);
         vm.startPrank(lender);
         usdc.mint(lender, balance);
         vm.expectRevert(InsufficientFunds.selector);
-        uint256[] memory positionIds = new uint256[](2);
-        positionIds[0] = positionId0;
-        positionIds[1] = positionId1;
-        polyLend.offer(_loanAmount, rate, positionIds, _collateralAmount, _minimumLoanAmount, _duration, false);
+        polyLend.offer(_loanAmount, rate, allPositionIds, _collateralAmount, _minimumLoanAmount, _duration, false);
         vm.stopPrank();
     }
 
@@ -93,15 +92,14 @@ contract PolyLendOfferTest is PolyLendTestHelper {
     ) public {
         _setUp(_collateralAmount, _rate);
 
+        vm.assume(_loanAmount > 0);
+
         uint256 allowance = bound(_allowance, 0, _loanAmount - 1);
         vm.startPrank(lender);
         usdc.mint(lender, _loanAmount);
         usdc.approve(address(polyLend), allowance);
         vm.expectRevert(InsufficientAllowance.selector);
-        uint256[] memory positionIds = new uint256[](2);
-        positionIds[0] = positionId0;
-        positionIds[1] = positionId1;
-        polyLend.offer(_loanAmount, rate, positionIds, _collateralAmount, _minimumLoanAmount, _duration, false);
+        polyLend.offer(_loanAmount, rate, allPositionIds, _collateralAmount, _minimumLoanAmount, _duration, false);
         vm.stopPrank();
     }
 
@@ -119,10 +117,7 @@ contract PolyLendOfferTest is PolyLendTestHelper {
         usdc.mint(lender, _loanAmount);
         usdc.approve(address(polyLend), _loanAmount);
         vm.expectRevert(InvalidRate.selector);
-        uint256[] memory positionIds = new uint256[](2);
-        positionIds[0] = positionId0;
-        positionIds[1] = positionId1;
-        polyLend.offer(_loanAmount, rate, positionIds, _collateralAmount, _minimumLoanAmount, _duration, false);
+        polyLend.offer(_loanAmount, rate, allPositionIds, _collateralAmount, _minimumLoanAmount, _duration, false);
         vm.stopPrank();
     }
 
@@ -140,10 +135,7 @@ contract PolyLendOfferTest is PolyLendTestHelper {
         usdc.mint(lender, _loanAmount);
         usdc.approve(address(polyLend), _loanAmount);
         vm.expectRevert(InvalidRate.selector);
-        uint256[] memory positionIds = new uint256[](2);
-        positionIds[0] = positionId0;
-        positionIds[1] = positionId1;
-        polyLend.offer(_loanAmount, rate, positionIds, _collateralAmount, _minimumLoanAmount, _duration, false);
+        polyLend.offer(_loanAmount, rate, allPositionIds, _collateralAmount, _minimumLoanAmount, _duration, false);
         vm.stopPrank();
     }
 }
