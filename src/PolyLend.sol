@@ -190,6 +190,10 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
             revert InvalidLoanAmount();
         }
 
+        if (_collateralAmount == 0) {
+            revert InvalidCollateralAmount();
+        }
+
         if (_loanAmount < _minimumLoanAmount) {
             revert InvalidMinimumLoanAmount();
         }
@@ -270,7 +274,7 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
             revert InvalidMinimumDuration();
         }
 
-        uint256 loanAmount = (_offer.collateralAmount * _offer.loanAmount) / _collateralAmount;
+        uint256 loanAmount = (_collateralAmount * _offer.loanAmount) / _offer.collateralAmount;
 
         if (loanAmount < _offer.minimumLoanAmount || loanAmount > _offer.loanAmount) {
             revert InvalidLoanAmount();
