@@ -71,9 +71,8 @@ contract PolyLendTestHelper is Test, IPolyLend {
             bool perpetual_
         ) = polyLend.offers(_offerId);
 
-        uint256[] memory positionIds = new uint256[](2);
-        positionIds[0] = positionId0;
-        positionIds[1] = positionId1;
+        uint256[] memory positionIds = polyLend.getOffersPositionIds(_offerId);
+
         return Offer({
             offerId: offerId_, 
             lender: lender_, 
@@ -84,6 +83,7 @@ contract PolyLendTestHelper is Test, IPolyLend {
             minimumLoanAmount: minimumLoanAmount_,
             duration: duration_,
             startTime: startTime_,
+            positionIds: positionIds,
             perpetual: perpetual_
         });
     }

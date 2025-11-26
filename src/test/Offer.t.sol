@@ -30,24 +30,36 @@ contract PolyLendOfferTest is PolyLendTestHelper {
         _setUp(_collateralAmount, _rate);
 
         vm.startPrank(lender);
+        vm.assume(_loanAmount > 0);
+        vm.assume(_minimumLoanAmount < _loanAmount);
+        vm.assume(_duration <= 60 days);
         usdc.mint(lender, _loanAmount);
         usdc.approve(address(polyLend), _loanAmount);
-        vm.expectEmit();
-        emit LoanOffered(0, lender, _loanAmount, rate);
+        
         uint256[] memory positionIds = new uint256[](2);
         positionIds[0] = positionId0;
         positionIds[1] = positionId1;
+
+        vm.expectEmit();
+        emit LoanOffered(0, lender, _loanAmount, rate);
         polyLend.offer(_loanAmount, rate, positionIds, _collateralAmount, _minimumLoanAmount, _duration, false);
         vm.stopPrank();
 
         Offer memory offer = _getOffer(0);
-
         
         assertEq(offer.lender, lender);
         assertEq(offer.loanAmount, _loanAmount);
         assertEq(offer.rate, rate);
+        assertEq(offer.minimumLoanAmount, _minimumLoanAmount);
+        assertEq(offer.duration, _duration);
+        assertEq(offer.perpetual, false);
+        assertEq(offer.collateralAmount, _collateralAmount);
+        assertEq(offer.borrowedAmount, 0);
+        assertEq(offer.startTime, block.timestamp);
 
-        assertEq(polyLend.nextOfferId(), 1);
+        assertEq(offer.positionIds.length, 2);
+        assertEq(offer.positionIds[0], positionId0);
+        assertEq(offer.positionIds[1], positionId1);
     }
 
     function test_revert_PolyLendOfferTest_offer_InsufficientFunds(

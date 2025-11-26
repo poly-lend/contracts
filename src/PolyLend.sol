@@ -36,6 +36,7 @@ struct Offer {
     uint256 minimumLoanAmount;
     uint256 duration;
     uint256 startTime;
+    uint256[] positionIds;
     bool perpetual;
 }
 
@@ -124,8 +125,6 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
     /// @notice offers mapping
     mapping(uint256 => Offer) public offers;
 
-    mapping(uint256 => uint256[]) public offerPositionIds;
-
     constructor(
             address _conditionalTokens,
             address _usdc, 
@@ -146,6 +145,10 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
         Loan memory loan = loans[_loanId];
         uint256 loanDuration = _paybackTime - loan.startTime;
         return _calculateAmountOwed(loan.loanAmount, loan.rate, loanDuration);
+    }
+
+    function getOffersPositionIds(uint256 _offerId) external view returns (uint256[] memory) {
+        return offers[_offerId].positionIds;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -208,10 +211,9 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
             minimumLoanAmount: _minimumLoanAmount,
             duration: _duration,
             startTime: block.timestamp,
+            positionIds: _positionIds,
             perpetual: _perpetual 
         });
-
-        offerPositionIds[offerId] = _positionIds;
 
         emit LoanOffered(offerId, msg.sender, _loanAmount, _rate);
 
@@ -280,7 +282,7 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
 
         bool positionFound = false;
 
-        uint256[] memory positionIds = offerPositionIds[_offer.offerId];
+        uint256[] memory positionIds = _offer.positionIds;
         for (uint256 i =0; i < positionIds.length; i++) {
             positionFound = positionFound || positionIds[i] == _positionId;
         }
