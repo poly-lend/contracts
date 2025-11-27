@@ -2,6 +2,7 @@
 pragma solidity ^0.8.30;
 
 import {ERC20} from "../lib/solady/src/tokens/ERC20.sol";
+import {SafeTransferLib} from "../lib/solady/src/utils/SafeTransferLib.sol";
 import {IConditionalTokens} from "./interfaces/IConditionalTokens.sol";
 import {ISafeProxyFactory} from "./interfaces/ISafeProxyFactory.sol";
 import {ERC1155TokenReceiver} from "./ERC1155TokenReceiver.sol";
@@ -51,6 +52,7 @@ interface IPolyLend {
     event LoanReclaimed(uint256 indexed id);
     event LoanOfferCanceled(uint256 indexed id);
 
+    error InvalidDuration();
     error CollateralAmountIsZero();
     error InvalidCollateralAmount();
     error InvalidMinimumDuration();
@@ -174,6 +176,10 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
         bool _perpetual
     ) external returns (uint256) {
 
+        if (_duration == 0) {
+            revert InvalidDuration();
+        }
+
         if (usdc.balanceOf(msg.sender) < _loanAmount) {
             revert InsufficientFunds();
         }
@@ -266,7 +272,7 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
             revert InvalidOffer();
         }
 
-        if (_offer.collateralAmount < _collateralAmount || _collateralAmount == 0) {
+        if (_offer.collateralAmount < _collateralAmount) {
             revert InvalidCollateralAmount();
         }
 
@@ -321,7 +327,7 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
         conditionalTokens.safeTransferFrom(borrowerWallet, address(this), _positionId, _collateralAmount, "");
 
         // transfer usdc from the lender to the borrower
-        usdc.transferFrom(lender, msg.sender, loanAmount);
+        SafeTransferLib.safeTransferFrom(address(usdc), lender, msg.sender, loanAmount);
 
         emit LoanAccepted(loanId, _offerId, block.timestamp);
 
@@ -403,8 +409,8 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
         }
 
         // transfer usdc from the borrower to the lender and fee recipient
-        usdc.transferFrom(msg.sender, loan.lender, lenderAmount);
-        usdc.transferFrom(msg.sender, feeRecipient, fee);
+        SafeTransferLib.safeTransferFrom(address(usdc), msg.sender, loan.lender, lenderAmount);
+        SafeTransferLib.safeTransferFrom(address(usdc), msg.sender, feeRecipient, fee);
 
         // transfer the borrowers collateral back to the borrower's wallet
         conditionalTokens.safeTransferFrom(
@@ -494,8 +500,8 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
         uint256 fee = _calculateFee(loanAmount, amountOwed);
         uint256 lenderAmount = amountOwed - fee;
         
-        usdc.transferFrom(msg.sender, loan.lender, lenderAmount);
-        usdc.transferFrom(msg.sender, feeRecipient, fee);
+        SafeTransferLib.safeTransferFrom(address(usdc), msg.sender, loan.lender, lenderAmount);
+        SafeTransferLib.safeTransferFrom(address(usdc), msg.sender, feeRecipient, fee);
 
         emit LoanTransferred(_loanId, loanId, msg.sender, _newRate);
     }
