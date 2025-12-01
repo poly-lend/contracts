@@ -300,11 +300,14 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
         uint256[] memory positionIds = _offer.positionIds;
         for (uint256 i =0; i < positionIds.length; i++) {
             positionFound = positionFound || positionIds[i] == _positionId;
-
             positionIndex = i;
             if (positionFound) {
                 break;
             }
+        }
+
+        if (!positionFound) {
+            revert InvalidPosition();
         }
 
         uint256 offerCollateralAmount = _offer.collateralAmounts[positionIndex];
@@ -325,10 +328,6 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
 
         if (loanAmount > _offer.loanAmount - _offer.borrowedAmount) {
             revert LoanAmountExceedsLimit();
-        }
-
-        if (!positionFound) {
-            revert InvalidPosition();
         }
 
         uint256 loanId = nextLoanId;
