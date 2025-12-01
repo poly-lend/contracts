@@ -32,12 +32,12 @@ struct Offer {
     address lender;
     uint256 loanAmount;
     uint256 rate;
-    uint256 borrowedAmount;
-    uint256 collateralAmount;
     uint256 minimumLoanAmount;
     uint256 duration;
     uint256 startTime;
+    uint256 borrowedAmount;
     uint256[] positionIds;
+    uint256[] collateralAmounts;
     bool perpetual;
 }
 
@@ -54,6 +54,8 @@ interface IPolyLend {
 
     error InvalidDuration();
     error CollateralAmountIsZero();
+    error InvalidPositionList();
+    error InvalidCollateralAmounts();
     error InvalidCollateralAmount();
     error InvalidMinimumDuration();
     error InvalidMinimumLoanAmount();
@@ -149,8 +151,18 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
         return _calculateAmountOwed(loan.loanAmount, loan.rate, loanDuration);
     }
 
-    function getOffersPositionIds(uint256 _offerId) external view returns (uint256[] memory) {
+    /// @notice Get the position ids for an offer
+    /// @param _offerId The id of the offer
+    /// @return The position ids
+    function getOfferPositionIds(uint256 _offerId) external view returns (uint256[] memory) {
         return offers[_offerId].positionIds;
+    }
+
+    /// @notice Get the collateral amounts for an offer
+    /// @param _offerId The id of the offer
+    /// @return The collateral amounts
+    function getOfferCollateralAmounts(uint256 _offerId) external view returns (uint256[] memory) {
+        return offers[_offerId].collateralAmounts;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -161,7 +173,7 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
     /// @param _loanAmount The usdc amount of the loan
     /// @param _rate The interest rate of the loan
     /// @param _positionIds Array of position IDs
-    /// @param _collateralAmount number of shares required as collateral
+    /// @param _collateralAmounts Array of collateral amounts
     /// @param _minimumLoanAmount Minimum amount to borrow from this offer
     /// @param _duration Duration to what time the loan could be borrowed
     /// @param _perpetual IF the offer can be used again
@@ -170,7 +182,7 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
         uint256 _loanAmount,
         uint256 _rate,
         uint256[] calldata _positionIds,
-        uint256 _collateralAmount,
+        uint256[] calldata _collateralAmounts,
         uint256 _minimumLoanAmount,
         uint256 _duration,
         bool _perpetual
@@ -196,8 +208,18 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
             revert InvalidLoanAmount();
         }
 
-        if (_collateralAmount == 0) {
-            revert InvalidCollateralAmount();
+        if (_positionIds.length == 0) {
+            revert InvalidPositionList();
+        }
+
+        if (_collateralAmounts.length != _positionIds.length) {
+            revert InvalidCollateralAmounts();
+        }
+
+        for (uint256 i = 0; i < _collateralAmounts.length; i++) {
+            if (_collateralAmounts[i] == 0) {
+                revert CollateralAmountIsZero();
+            }
         }
 
         if (_loanAmount < _minimumLoanAmount) {
@@ -216,12 +238,12 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
             lender: msg.sender, 
             loanAmount: _loanAmount, 
             rate: _rate,
-            borrowedAmount: 0,
-            collateralAmount: _collateralAmount,
+            positionIds: _positionIds,
+            collateralAmounts: _collateralAmounts,
             minimumLoanAmount: _minimumLoanAmount,
             duration: _duration,
             startTime: block.timestamp,
-            positionIds: _positionIds,
+            borrowedAmount: 0,
             perpetual: _perpetual 
         });
 
@@ -272,7 +294,22 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
             revert InvalidOffer();
         }
 
-        if (_offer.collateralAmount < _collateralAmount) {
+        bool positionFound = false;
+        uint256 positionIndex = 0;
+
+        uint256[] memory positionIds = _offer.positionIds;
+        for (uint256 i =0; i < positionIds.length; i++) {
+            positionFound = positionFound || positionIds[i] == _positionId;
+
+            positionIndex = i;
+            if (positionFound) {
+                break;
+            }
+        }
+
+        uint256 offerCollateralAmount = _offer.collateralAmounts[positionIndex];
+
+        if (offerCollateralAmount < _collateralAmount) {
             revert InvalidCollateralAmount();
         }
 
@@ -280,7 +317,7 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
             revert InvalidMinimumDuration();
         }
 
-        uint256 loanAmount = (_collateralAmount * _offer.loanAmount) / _offer.collateralAmount;
+        uint256 loanAmount = (_collateralAmount * _offer.loanAmount) / offerCollateralAmount;
 
         if (loanAmount < _offer.minimumLoanAmount || loanAmount > _offer.loanAmount) {
             revert InvalidLoanAmount();
@@ -288,13 +325,6 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
 
         if (loanAmount > _offer.loanAmount - _offer.borrowedAmount) {
             revert LoanAmountExceedsLimit();
-        }
-
-        bool positionFound = false;
-
-        uint256[] memory positionIds = _offer.positionIds;
-        for (uint256 i =0; i < positionIds.length; i++) {
-            positionFound = positionFound || positionIds[i] == _positionId;
         }
 
         if (!positionFound) {

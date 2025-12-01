@@ -8,15 +8,15 @@ contract PolyLendCancelOfferTest is PolyLendTestHelper {
     uint256 requestId;
     uint256 offerId;
 
-    function _setUp(uint128 _amount, uint128 _loanAmount, uint256 _rate, uint256 _minimumLoanAmount, uint256 _duration) internal {
-        vm.assume(_amount > 0);
+    function _setUp(uint128 _collateralAmount, uint128 _loanAmount, uint256 _rate, uint256 _minimumLoanAmount, uint256 _duration) internal {
+        vm.assume(_collateralAmount > 0);
         vm.assume(_loanAmount > 0);
         vm.assume(_minimumLoanAmount < _loanAmount);
         vm.assume(_duration <= 60 days);
 
         rate = bound(_rate, 10 ** 18 + 1, polyLend.MAX_INTEREST());
 
-        _mintConditionalTokens(borrower, _amount, positionId0);
+        _mintConditionalTokens(borrower, _collateralAmount, positionId0);
         usdc.mint(lender, _loanAmount);
 
         vm.startPrank(borrower);
@@ -28,7 +28,10 @@ contract PolyLendCancelOfferTest is PolyLendTestHelper {
         uint256[] memory positionIds = new uint256[](2);
         positionIds[0] = positionId0;
         positionIds[1] = positionId1;
-        offerId = polyLend.offer(_loanAmount, rate, positionIds, _amount, _minimumLoanAmount, _duration, false);
+        uint256[] memory collateralAmounts = new uint256[](2);
+        collateralAmounts[0] = _collateralAmount;
+        collateralAmounts[1] = _collateralAmount;
+        offerId = polyLend.offer(_loanAmount, rate, positionIds, collateralAmounts, _minimumLoanAmount, _duration, false);
         vm.stopPrank();
     }
 

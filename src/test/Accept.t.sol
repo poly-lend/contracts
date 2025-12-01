@@ -37,7 +37,10 @@ contract PolyLendAcceptTest is PolyLendTestHelper {
         uint256[] memory positionIds = new uint256[](2);
         positionIds[0] = positionId0;
         positionIds[1] = positionId1;
-        offerId = polyLend.offer(_loanAmount, rate, positionIds, _collateralAmount, _minimumLoanAmount, _duration, false);
+        uint256[] memory collateralAmounts = new uint256[](2);
+        collateralAmounts[0] = _collateralAmount;
+        collateralAmounts[1] = _collateralAmount;
+        offerId = polyLend.offer(_loanAmount, rate, positionIds, collateralAmounts, _minimumLoanAmount, _duration, false);
         vm.stopPrank();
     }
 

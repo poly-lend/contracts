@@ -6,6 +6,7 @@ import {PolyLendTestHelper, Offer} from "./PolyLendTestHelper.sol";
 contract PolyLendOfferTest is PolyLendTestHelper {
     uint256 rate;
     uint256[] allPositionIds;
+    uint256[] allCollateralAmounts;
 
 
     function _setUp(
@@ -22,6 +23,10 @@ contract PolyLendOfferTest is PolyLendTestHelper {
         allPositionIds = new uint256[](2);
         allPositionIds[0] = positionId0;
         allPositionIds[1] = positionId1;
+
+        allCollateralAmounts = new uint256[](2);
+        allCollateralAmounts[0] = _collateralAmount;
+        allCollateralAmounts[1] = _collateralAmount;
     }
 
     function test_PolyLendOfferTest_offer(
@@ -42,7 +47,7 @@ contract PolyLendOfferTest is PolyLendTestHelper {
         
         vm.expectEmit();
         emit LoanOffered(0, lender, _loanAmount, rate);
-        polyLend.offer(_loanAmount, rate, allPositionIds, _collateralAmount, _minimumLoanAmount, _duration, false);
+        polyLend.offer(_loanAmount, rate, allPositionIds, allCollateralAmounts, _minimumLoanAmount, _duration, false);
         vm.stopPrank();
 
         Offer memory offer = _getOffer(0);
@@ -53,13 +58,15 @@ contract PolyLendOfferTest is PolyLendTestHelper {
         assertEq(offer.minimumLoanAmount, _minimumLoanAmount);
         assertEq(offer.duration, _duration);
         assertEq(offer.perpetual, false);
-        assertEq(offer.collateralAmount, _collateralAmount);
         assertEq(offer.borrowedAmount, 0);
         assertEq(offer.startTime, block.timestamp);
 
         assertEq(offer.positionIds.length, 2);
         assertEq(offer.positionIds[0], positionId0);
         assertEq(offer.positionIds[1], positionId1);
+        assertEq(offer.collateralAmounts.length, 2);
+        assertEq(offer.collateralAmounts[0], _collateralAmount);
+        assertEq(offer.collateralAmounts[1], _collateralAmount);
     }
 
     function test_revert_PolyLendOfferTest_offer_InsufficientFunds(
@@ -78,7 +85,7 @@ contract PolyLendOfferTest is PolyLendTestHelper {
         vm.startPrank(lender);
         usdc.mint(lender, balance);
         vm.expectRevert(InsufficientFunds.selector);
-        polyLend.offer(_loanAmount, rate, allPositionIds, _collateralAmount, _minimumLoanAmount, _duration, false);
+        polyLend.offer(_loanAmount, rate, allPositionIds, allCollateralAmounts, _minimumLoanAmount, _duration, false);
         vm.stopPrank();
     }
 
@@ -99,7 +106,7 @@ contract PolyLendOfferTest is PolyLendTestHelper {
         usdc.mint(lender, _loanAmount);
         usdc.approve(address(polyLend), allowance);
         vm.expectRevert(InsufficientAllowance.selector);
-        polyLend.offer(_loanAmount, rate, allPositionIds, _collateralAmount, _minimumLoanAmount, _duration, false);
+        polyLend.offer(_loanAmount, rate, allPositionIds, allCollateralAmounts, _minimumLoanAmount, _duration, false);
         vm.stopPrank();
     }
 
@@ -117,7 +124,7 @@ contract PolyLendOfferTest is PolyLendTestHelper {
         usdc.mint(lender, _loanAmount);
         usdc.approve(address(polyLend), _loanAmount);
         vm.expectRevert(InvalidRate.selector);
-        polyLend.offer(_loanAmount, rate, allPositionIds, _collateralAmount, _minimumLoanAmount, _duration, false);
+        polyLend.offer(_loanAmount, rate, allPositionIds, allCollateralAmounts, _minimumLoanAmount, _duration, false);
         vm.stopPrank();
     }
 
@@ -135,7 +142,7 @@ contract PolyLendOfferTest is PolyLendTestHelper {
         usdc.mint(lender, _loanAmount);
         usdc.approve(address(polyLend), _loanAmount);
         vm.expectRevert(InvalidRate.selector);
-        polyLend.offer(_loanAmount, rate, allPositionIds, _collateralAmount, _minimumLoanAmount, _duration, false);
+        polyLend.offer(_loanAmount, rate, allPositionIds, allCollateralAmounts, _minimumLoanAmount, _duration, false);
         vm.stopPrank();
     }
 }

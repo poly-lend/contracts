@@ -64,22 +64,21 @@ contract PolyLendTestHelper is Test, IPolyLend {
             uint256 loanAmount_,
             uint256 rate_,
             uint256 borrowedAmount_,
-            uint256 collateralAmount_,
             uint256 minimumLoanAmount_,
             uint256 duration_,
             uint256 startTime_,
             bool perpetual_
         ) = polyLend.offers(_offerId);
 
-        uint256[] memory positionIds = polyLend.getOffersPositionIds(_offerId);
-
+        uint256[] memory positionIds = polyLend.getOfferPositionIds(_offerId);
+        uint256[] memory collateralAmounts = polyLend.getOfferCollateralAmounts(_offerId);
         return Offer({
             offerId: offerId_, 
             lender: lender_, 
             loanAmount: loanAmount_, 
             rate: rate_,
             borrowedAmount: borrowedAmount_,
-            collateralAmount: collateralAmount_,
+            collateralAmounts: collateralAmounts,
             minimumLoanAmount: minimumLoanAmount_,
             duration: duration_,
             startTime: startTime_,
