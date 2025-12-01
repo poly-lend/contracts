@@ -70,7 +70,6 @@ contract PolyLendReclaimTest is PolyLendTestHelper {
         uint256 callTime;
 
         {
-            uint256 duration = bound(_duration, _minimumDuration, 60 days);
             uint256 auctionLength = bound(_auctionLength, polyLend.AUCTION_DURATION() + 1, type(uint32).max);
             loanId = _setUp(_collateralAmount, _loanAmount, _rate, _minimumLoanAmount, _duration, _minimumDuration);
 
@@ -113,7 +112,6 @@ contract PolyLendReclaimTest is PolyLendTestHelper {
         uint256 callTime;
 
         {
-            uint256 duration = bound(_duration, _minimumDuration, 60 days);
             uint256 auctionLength = bound(_auctionLength, polyLend.AUCTION_DURATION() + 1, type(uint32).max);
             loanId = _setUp(_collateralAmount, _loanAmount, _rate, _minimumLoanAmount, _duration, _minimumDuration);
 
@@ -145,7 +143,6 @@ contract PolyLendReclaimTest is PolyLendTestHelper {
         uint256 callTime;
 
         {
-            uint256 duration = bound(_duration, _minimumDuration, 60 days);
             uint256 auctionLength = bound(_auctionLength, polyLend.AUCTION_DURATION() + 1, type(uint32).max);
             loanId = _setUp(_collateralAmount, _loanAmount, _rate, _minimumLoanAmount, _duration, _minimumDuration);
 
@@ -225,7 +222,6 @@ contract PolyLendReclaimTest is PolyLendTestHelper {
         uint256 callTime;
 
         {
-            uint256 duration = bound(_duration, _minimumDuration, 60 days);
             uint256 auctionLength = bound(_auctionLength, 0, polyLend.AUCTION_DURATION());
             loanId = _setUp(_collateralAmount, _loanAmount, _rate, _minimumLoanAmount, _duration, _minimumDuration);
 
