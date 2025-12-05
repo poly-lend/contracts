@@ -44,11 +44,11 @@ struct Offer {
 /// @title PolyLendEE
 /// @notice PolyLend events and errors
 interface IPolyLend {
-    event LoanAccepted(uint256 indexed id, uint256 indexed offerId, uint256 startTime);
+    event LoanAccepted(uint256 indexed id, uint256 indexed offerId, address indexed borrower, uint256 startTime);
     event LoanCalled(uint256 indexed id, uint256 callTime);
     event LoanOffered(uint256 indexed id, address indexed lender, uint256 loanAmount, uint256 rate);
-    event LoanRepaid(uint256 indexed id);
-    event LoanTransferred(uint256 indexed oldId, uint256 indexed newId, address indexed newLender, uint256 newRate);
+    event LoanRepaid(uint256 indexed id, uint256 indexed offerId);
+    event LoanTransferred(uint256 indexed oldId, uint256 indexed newId, address indexed newLender, uint256 offerId, uint256 newRate);
     event LoanReclaimed(uint256 indexed id);
     event LoanOfferCanceled(uint256 indexed id);
 
@@ -358,7 +358,7 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
         // transfer usdc from the lender to the borrower
         SafeTransferLib.safeTransferFrom(address(usdc), lender, msg.sender, loanAmount);
 
-        emit LoanAccepted(loanId, _offerId, block.timestamp);
+        emit LoanAccepted(loanId, _offerId, msg.sender, block.timestamp);
 
         return loanId;
     }
@@ -449,7 +449,7 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
         // cancel loan
         loan.borrower = address(0);
 
-        emit LoanRepaid(_loanId);
+        emit LoanRepaid(_loanId, loan.offerId);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -532,7 +532,7 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
         SafeTransferLib.safeTransferFrom(address(usdc), msg.sender, loan.lender, lenderAmount);
         SafeTransferLib.safeTransferFrom(address(usdc), msg.sender, feeRecipient, fee);
 
-        emit LoanTransferred(_loanId, loanId, msg.sender, _newRate);
+        emit LoanTransferred(_loanId, loanId, msg.sender, loan.offerId, _newRate);
     }
 
     /*//////////////////////////////////////////////////////////////

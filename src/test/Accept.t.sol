@@ -56,7 +56,7 @@ contract PolyLendAcceptTest is PolyLendTestHelper {
 
         vm.startPrank(borrower);
         vm.expectEmit();
-        emit LoanAccepted(0, 0, block.timestamp);
+        emit LoanAccepted(0, offerId, borrower, block.timestamp);
         polyLend.accept(offerId, _collateralAmount, _minimumDuration, positionId0, false);
         vm.stopPrank();
 

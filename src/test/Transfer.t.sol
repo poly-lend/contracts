@@ -7,6 +7,7 @@ import {InterestLib} from "../InterestLib.sol";
 contract PolyLendTransferTest is PolyLendTestHelper {
     address newLender;
     uint256 rate;
+    uint256 offerId;
 
     function setUp() public override {
         super.setUp();
@@ -44,7 +45,7 @@ contract PolyLendTransferTest is PolyLendTestHelper {
         uint256[] memory collateralAmounts = new uint256[](2);
         collateralAmounts[0] = _collateralAmount;
         collateralAmounts[1] = _collateralAmount;
-        uint256 offerId = polyLend.offer(_loanAmount, rate, positionIds, collateralAmounts, _minimumLoanAmount, _duration, false);
+        offerId = polyLend.offer(_loanAmount, rate, positionIds, collateralAmounts, _minimumLoanAmount, _duration, false);
         vm.stopPrank();
 
         vm.startPrank(borrower);
@@ -93,7 +94,7 @@ contract PolyLendTransferTest is PolyLendTestHelper {
         vm.startPrank(newLender);
         usdc.approve(address(polyLend), amountOwed);
         vm.expectEmit();
-        emit LoanTransferred(loanId, newLoanId, newLender, newRate);
+        emit LoanTransferred(loanId, newLoanId, newLender, offerId, newRate);
         polyLend.transfer(loanId, newRate);
         vm.stopPrank();
 
@@ -157,7 +158,7 @@ contract PolyLendTransferTest is PolyLendTestHelper {
 
         vm.startPrank(borrower);
         vm.expectEmit();
-        emit LoanAccepted(0, 0, block.timestamp);
+        emit LoanAccepted(0, 0, borrower, block.timestamp);
         uint256 loanId = polyLend.accept(offerId, _collateralAmount, _minimumDuration, positionId0, false);
         vm.stopPrank();
 

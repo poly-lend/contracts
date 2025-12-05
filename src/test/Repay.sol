@@ -6,6 +6,7 @@ import {PolyLendTestHelper, Loan} from "./PolyLendTestHelper.sol";
 contract PolyLendRepayTest is PolyLendTestHelper {
     uint256 loanId;
     uint256 rate;
+    uint256 offerId;
 
     function _setUp(uint128 _collateralAmount, uint128 _loanAmount, uint256 _rate, uint256 _minimumLoanAmount, uint256 _duration, uint256 _minimumDuration) internal {
         vm.assume(_collateralAmount > 0);
@@ -30,7 +31,7 @@ contract PolyLendRepayTest is PolyLendTestHelper {
         uint256[] memory collateralAmounts = new uint256[](2);
         collateralAmounts[0] = _collateralAmount;
         collateralAmounts[1] = _collateralAmount;
-        uint256 offerId = polyLend.offer(_loanAmount, rate, positionIds, collateralAmounts, _minimumLoanAmount, _duration, false);
+        offerId = polyLend.offer(_loanAmount, rate, positionIds, collateralAmounts, _minimumLoanAmount, _duration, false);
         vm.stopPrank();
 
         vm.startPrank(borrower);
@@ -58,7 +59,7 @@ contract PolyLendRepayTest is PolyLendTestHelper {
         usdc.mint(borrower, amountOwed - usdc.balanceOf(borrower));
         usdc.approve(address(polyLend), amountOwed);
         vm.expectEmit();
-        emit LoanRepaid(loanId);
+        emit LoanRepaid(loanId, offerId);
         polyLend.repay(loanId, paybackTime);
         vm.stopPrank();
 
@@ -99,7 +100,7 @@ contract PolyLendRepayTest is PolyLendTestHelper {
         usdc.mint(borrower, amountOwed - usdc.balanceOf(borrower));
         usdc.approve(address(polyLend), amountOwed);
         vm.expectEmit();
-        emit LoanRepaid(loanId);
+        emit LoanRepaid(loanId, offerId);
         polyLend.repay(loanId, callTime);
         vm.stopPrank();
 
