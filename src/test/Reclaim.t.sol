@@ -51,7 +51,7 @@ contract PolyLendReclaimTest is PolyLendTestHelper {
         uint256 loanId = polyLend.accept(offerId, _collateralAmount, _minimumDuration, positionId0, false);
         vm.stopPrank();
 
-        vm.warp(block.timestamp + _duration);
+        skip(_duration);
 
         vm.startPrank(lender);
         polyLend.call(loanId);
@@ -79,7 +79,7 @@ contract PolyLendReclaimTest is PolyLendTestHelper {
             loanId = _setUp(_collateralAmount, _loanAmount, _rate, _minimumLoanAmount, _duration, _minimumDuration);
 
             callTime = block.timestamp;
-            vm.warp(block.timestamp + auctionLength);
+            skip(auctionLength);
         }
 
         vm.startPrank(lender);
@@ -121,7 +121,7 @@ contract PolyLendReclaimTest is PolyLendTestHelper {
             loanId = _setUp(_collateralAmount, _loanAmount, _rate, _minimumLoanAmount, _duration, _minimumDuration);
 
             callTime = block.timestamp;
-            vm.warp(block.timestamp + auctionLength);
+            skip(auctionLength);
         }
 
         vm.startPrank(lender);
@@ -152,7 +152,7 @@ contract PolyLendReclaimTest is PolyLendTestHelper {
             loanId = _setUp(_collateralAmount, _loanAmount, _rate, _minimumLoanAmount, _duration, _minimumDuration);
 
             callTime = block.timestamp;
-            vm.warp(block.timestamp + auctionLength);
+            skip(auctionLength);
         }
 
         vm.startPrank(_caller);
@@ -208,7 +208,7 @@ contract PolyLendReclaimTest is PolyLendTestHelper {
             loanId = polyLend.accept(offerId, _collateralAmount, _minimumDuration, positionId0, false);
             vm.stopPrank();
 
-            vm.warp(block.timestamp + duration + auctionLength);
+            skip(duration + auctionLength);
         }
 
         vm.startPrank(lender);
@@ -236,7 +236,7 @@ contract PolyLendReclaimTest is PolyLendTestHelper {
             loanId = _setUp(_collateralAmount, _loanAmount, _rate, _minimumLoanAmount, _duration, _minimumDuration);
 
             callTime = block.timestamp;
-            vm.warp(block.timestamp + auctionLength);
+            skip(auctionLength);
         }
 
         vm.startPrank(lender);

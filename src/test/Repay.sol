@@ -55,7 +55,7 @@ contract PolyLendRepayTest is PolyLendTestHelper {
         uint256 duration = bound(_minimumDuration, 0, 60 days);
 
         uint256 paybackTime = block.timestamp + duration;
-        vm.warp(paybackTime);
+        skip(duration);
 
         uint256 amountOwed = polyLend.getAmountOwed(loanId, paybackTime);
         uint256 fee = (amountOwed - _loanAmount) / 10 ;
@@ -91,13 +91,13 @@ contract PolyLendRepayTest is PolyLendTestHelper {
         uint256 auctionDuration = bound(_auctionDuration, 0, polyLend.AUCTION_DURATION());
 
         uint256 callTime = block.timestamp + duration;
-        vm.warp(callTime);
+        skip(duration);
 
         vm.startPrank(lender);
         polyLend.call(loanId);
         vm.stopPrank();
 
-        vm.warp(block.timestamp + auctionDuration);
+        skip(auctionDuration);
         uint256 amountOwed = polyLend.getAmountOwed(loanId, callTime);
         uint256 fee = (amountOwed - _loanAmount) / 10 ;
 
@@ -130,7 +130,7 @@ contract PolyLendRepayTest is PolyLendTestHelper {
         _setUp(_collateralAmount, _loanAmount, _rate, 0, _duration, _minimumDuration);
 
         uint256 duration = bound(_duration, _minimumDuration, 60 days);
-        vm.warp(block.timestamp + duration);
+        skip(duration);
 
         // allowed repayTimestamps
         // note that the loan _can_ be paid for a future timestamp
@@ -164,7 +164,7 @@ contract PolyLendRepayTest is PolyLendTestHelper {
         uint256 duration = bound(_duration, 0, 60 days);
 
         uint256 paybackTime = block.timestamp + duration;
-        vm.warp(paybackTime);
+        skip(duration);
 
         uint256 amountOwed = polyLend.getAmountOwed(loanId, paybackTime);
 
@@ -211,7 +211,7 @@ contract PolyLendRepayTest is PolyLendTestHelper {
         _setUp(_collateralAmount, _loanAmount, _rate, 0, _duration, _minimumDuration);
 
         uint256 duration = bound(_duration, _minimumDuration, 60 days);
-        vm.warp(block.timestamp + duration);
+        skip(duration);
 
         uint256 repayTimestamp = bound(_repayTimestamp, 0, block.timestamp - polyLend.PAYBACK_BUFFER() - 1);
 
@@ -237,7 +237,7 @@ contract PolyLendRepayTest is PolyLendTestHelper {
 
         vm.assume(_repayTime != callTime);
 
-        vm.warp(callTime);
+        skip(duration);
 
         vm.startPrank(lender);
         vm.expectEmit();
@@ -263,7 +263,7 @@ contract PolyLendRepayTest is PolyLendTestHelper {
         uint256 duration = bound(_duration, 0, 60 days);
 
         uint256 paybackTime = block.timestamp + duration;
-        vm.warp(paybackTime);
+        skip(duration);
 
         uint256 amountOwed = polyLend.getAmountOwed(loanId, paybackTime);
         uint256 allowance = bound(_allowance, 0, amountOwed - 1);

@@ -55,8 +55,7 @@ contract PolyLendCallTest is PolyLendTestHelper {
 
         uint256 duration = bound(_duration, _minimumDuration, type(uint128).max);
 
-        uint256 callTime = block.timestamp + duration;
-        vm.warp(callTime);
+        skip(duration);
 
         vm.startPrank(lender);
         vm.expectEmit();
@@ -108,7 +107,7 @@ contract PolyLendCallTest is PolyLendTestHelper {
 
         _setUp(_collateralAmount, _loanAmount, _rate, _minimumLoanAmount, _duration, _minimumDuration);
 
-        vm.warp(block.timestamp + duration);
+        skip(duration);
 
         vm.startPrank(lender);
         vm.expectRevert(MinimumDurationHasNotPassed.selector);
@@ -126,7 +125,7 @@ contract PolyLendCallTest is PolyLendTestHelper {
     ) public {
         _setUp(_collateralAmount, _loanAmount, _rate, _minimumLoanAmount, _duration, _minimumDuration);
 
-        vm.warp(block.timestamp + _minimumDuration);
+        skip(_minimumDuration);
 
         vm.startPrank(lender);
         polyLend.call(loanId);
@@ -148,7 +147,7 @@ contract PolyLendCallTest is PolyLendTestHelper {
         uint256 duration = bound(_duration, _minimumDuration, 60 days);
 
         uint256 paybackTime = block.timestamp + duration;
-        vm.warp(paybackTime);
+        skip(duration);
 
         uint256 amountOwed = polyLend.getAmountOwed(loanId, paybackTime);
 

@@ -56,7 +56,7 @@ contract PolyLendTransferTest is PolyLendTestHelper {
         uint256 loanId = polyLend.accept(offerId, _collateralAmount, _minimumDuration, positionId0, false);
         vm.stopPrank();
 
-        vm.warp(block.timestamp + _duration);
+        skip(_duration);
 
         vm.startPrank(lender);
         polyLend.call(loanId);
@@ -85,7 +85,7 @@ contract PolyLendTransferTest is PolyLendTestHelper {
             loanId = _setUp(_collateralAmount, _loanAmount, _rate, 0, duration, _minimumDuration);
 
             callTime = block.timestamp;
-            vm.warp(block.timestamp + auctionLength);
+            skip(auctionLength);
         }
 
         uint256 newRate = bound(_newRate, InterestLib.ONE, _getNewRate(callTime));
@@ -198,7 +198,7 @@ contract PolyLendTransferTest is PolyLendTestHelper {
         loanId = _setUp(_collateralAmount, _loanAmount, _rate, 0, duration, _minimumDuration);
 
         callTime = block.timestamp;
-        vm.warp(block.timestamp + auctionLength);
+        skip(auctionLength);
 
         uint256 newRate = bound(_newRate, 0, _getNewRate(callTime));
 
@@ -234,7 +234,7 @@ contract PolyLendTransferTest is PolyLendTestHelper {
             loanId = _setUp(_collateralAmount, _loanAmount, _rate, 0, duration, _minimumDuration);
 
             callTime = block.timestamp;
-            vm.warp(block.timestamp + auctionLength);
+            skip(auctionLength);
         }
 
         uint256 newRate = bound(_newRate, _getNewRate(callTime) + 1, type(uint64).max);
