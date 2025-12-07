@@ -21,6 +21,10 @@ contract PolyLendReclaimTest is PolyLendTestHelper {
         vm.assume(_collateralAmount > 0);
         vm.assume(_loanAmount > 1_000_000);
         vm.assume(_minimumLoanAmount < _loanAmount);
+        vm.assume(_duration > 0);
+        vm.assume(_duration <= 60 days);
+        vm.assume(_minimumDuration > 0);
+        vm.assume(_minimumDuration <= _duration);
 
         rate = bound(_rate, 10 ** 18 + 1, polyLend.MAX_INTEREST());
 
