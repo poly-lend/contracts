@@ -190,4 +190,36 @@ contract PolyLendOfferTest is PolyLendTestHelper {
         polyLend.offer(_loanAmount, rate, allPositionIds, allCollateralAmounts, _minimumLoanAmount, _duration, false);
         vm.stopPrank();
     }
+
+    function test_revert_PolyLendOfferTest_offer_InvalidPositionList(
+        uint128 _collateralAmount,
+        uint128 _loanAmount,
+        uint256 _rate,
+        uint256 _minimumLoanAmount,
+        uint256 _duration
+    ) public {
+        _setUp(_collateralAmount, _rate);
+        vm.assume(_duration > 0);
+        vm.assume(_duration <= 60 days);
+        vm.assume(_collateralAmount > 0);
+        vm.assume(_loanAmount > 0);
+        vm.assume(_minimumLoanAmount < _loanAmount);
+
+        vm.startPrank(lender);
+        usdc.mint(lender, _loanAmount);
+        usdc.approve(address(polyLend), _loanAmount);
+        vm.expectRevert(InvalidPositionList.selector);
+        polyLend.offer(_loanAmount, rate, new uint256[](0), allCollateralAmounts, _minimumLoanAmount, _duration, false);
+        vm.stopPrank();
+
+        vm.startPrank(lender);
+        vm.expectRevert(InvalidCollateralAmounts.selector);
+        polyLend.offer(_loanAmount, rate, allPositionIds, new uint256[](0), _minimumLoanAmount, _duration, false);
+        vm.stopPrank();
+
+        vm.startPrank(lender);
+        vm.expectRevert(InvalidCollateralAmounts.selector);
+        polyLend.offer(_loanAmount, rate, allPositionIds, new uint256[](1), _minimumLoanAmount, _duration, false);
+        vm.stopPrank();
+    }
 }
