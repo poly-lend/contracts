@@ -2,6 +2,7 @@
 pragma solidity ^0.8.30;
 
 import {PolyLendTestHelper, Offer} from "./PolyLendTestHelper.sol";
+import {InterestLib} from "../InterestLib.sol";
 
 contract PolyLendOfferTest is PolyLendTestHelper {
     uint256 rate;
@@ -13,7 +14,7 @@ contract PolyLendOfferTest is PolyLendTestHelper {
         uint128 _collateralAmount,
         uint256 _rate
     ) internal {
-        rate = bound(_rate, 10 ** 18 + 1, polyLend.MAX_INTEREST());
+        rate = bound(_rate, InterestLib.ONE + 1, polyLend.MAX_INTEREST());
 
         allPositionIds = new uint256[](2);
         allPositionIds[0] = positionId0;
@@ -124,7 +125,7 @@ contract PolyLendOfferTest is PolyLendTestHelper {
         vm.assume(_loanAmount > 0);
         vm.assume(_minimumLoanAmount < _loanAmount);
 
-        rate = bound(_rate, 0, 10 ** 18);
+        rate = bound(_rate, 0, InterestLib.ONE);
         vm.startPrank(lender);
         usdc.mint(lender, _loanAmount);
         usdc.approve(address(polyLend), _loanAmount);
