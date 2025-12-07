@@ -63,10 +63,10 @@ contract PolyLendTestHelper is Test, IPolyLend {
             address lender_,
             uint256 loanAmount_,
             uint256 rate_,
-            uint256 borrowedAmount_,
             uint256 minimumLoanAmount_,
             uint256 duration_,
             uint256 startTime_,
+            uint256 borrowedAmount_,
             bool perpetual_
         ) = polyLend.offers(_offerId);
 
@@ -77,11 +77,11 @@ contract PolyLendTestHelper is Test, IPolyLend {
             lender: lender_, 
             loanAmount: loanAmount_, 
             rate: rate_,
-            borrowedAmount: borrowedAmount_,
             collateralAmounts: collateralAmounts,
             minimumLoanAmount: minimumLoanAmount_,
             duration: duration_,
             startTime: startTime_,
+            borrowedAmount: borrowedAmount_,
             positionIds: positionIds,
             perpetual: perpetual_
         });

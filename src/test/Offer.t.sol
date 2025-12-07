@@ -36,6 +36,7 @@ contract PolyLendOfferTest is PolyLendTestHelper {
         vm.assume(_minimumLoanAmount < _loanAmount);
         vm.assume(_duration > 0);
         vm.assume(_duration <= 60 days);
+        vm.assume(_collateralAmount > 0);
 
         vm.startPrank(lender);
         usdc.mint(lender, _loanAmount);
