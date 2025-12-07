@@ -13,15 +13,13 @@ contract PolyLendAcceptTest is PolyLendTestHelper {
         uint128 _loanAmount, 
         uint256 _rate, 
         uint256 _minimumLoanAmount, 
-        uint256 _duration,
-        uint256 _minimumDuration
+        uint256 _duration
     ) internal {
         vm.assume(_loanAmount > 0);
         vm.assume(_minimumLoanAmount < _loanAmount);
         vm.assume(_collateralAmount > 0);
+        vm.assume(_duration > 0);
         vm.assume(_duration <= 60 days);
-        vm.assume(_minimumDuration <= 60 days);
-        vm.assume(_minimumDuration <= _duration);
 
         rate = bound(_rate, InterestLib.ONE + 1, polyLend.MAX_INTEREST());
 
@@ -52,7 +50,10 @@ contract PolyLendAcceptTest is PolyLendTestHelper {
         uint256 _duration,
         uint32 _minimumDuration
     ) public {
-        _setUp(_collateralAmount, _loanAmount, _rate, _minimumLoanAmount, _duration, _minimumDuration);
+        _setUp(_collateralAmount, _loanAmount, _rate, _minimumLoanAmount, _duration);
+
+        vm.assume(_minimumDuration > 0);
+        vm.assume(_minimumDuration <= _duration);
 
         vm.startPrank(borrower);
         vm.expectEmit();
@@ -89,7 +90,7 @@ contract PolyLendAcceptTest is PolyLendTestHelper {
     ) public {
         vm.assume(_offerId > 0);
 
-        _setUp(_collateralAmount, _loanAmount, _rate, _minimumLoanAmount, _duration, _minimumDuration);
+        _setUp(_collateralAmount, _loanAmount, _rate, _minimumLoanAmount, _duration);
 
         vm.startPrank(borrower);
         vm.expectRevert(InvalidOffer.selector);
