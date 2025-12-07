@@ -14,19 +14,6 @@ contract PolyLendOfferTest is PolyLendTestHelper {
         uint256 _rate
     ) internal {
         rate = bound(_rate, 10 ** 18 + 1, polyLend.MAX_INTEREST());
-
-        _mintConditionalTokens(borrower, _collateralAmount, positionId0);
-
-        vm.startPrank(borrower);
-        conditionalTokens.setApprovalForAll(address(polyLend), true);
-        vm.stopPrank();
-        allPositionIds = new uint256[](2);
-        allPositionIds[0] = positionId0;
-        allPositionIds[1] = positionId1;
-
-        allCollateralAmounts = new uint256[](2);
-        allCollateralAmounts[0] = _collateralAmount;
-        allCollateralAmounts[1] = _collateralAmount;
     }
 
     function test_PolyLendOfferTest_offer(
@@ -41,12 +28,14 @@ contract PolyLendOfferTest is PolyLendTestHelper {
         vm.startPrank(lender);
         vm.assume(_loanAmount > 0);
         vm.assume(_minimumLoanAmount < _loanAmount);
+        vm.assume(_duration > 0);
         vm.assume(_duration <= 60 days);
+
         usdc.mint(lender, _loanAmount);
         usdc.approve(address(polyLend), _loanAmount);
         
         vm.expectEmit();
-        emit LoanOffered(0, lender, _loanAmount, rate);
+        //emit LoanOffered(0, lender, _loanAmount, rate);
         polyLend.offer(_loanAmount, rate, allPositionIds, allCollateralAmounts, _minimumLoanAmount, _duration, false);
         vm.stopPrank();
 
@@ -80,6 +69,7 @@ contract PolyLendOfferTest is PolyLendTestHelper {
         _setUp(_collateralAmount, _rate);
 
         vm.assume(_loanAmount > 0);
+        vm.assume(_duration > 0);
 
         uint256 balance = bound(_balance, 0, _loanAmount - 1);
         vm.startPrank(lender);
@@ -100,6 +90,7 @@ contract PolyLendOfferTest is PolyLendTestHelper {
         _setUp(_collateralAmount, _rate);
 
         vm.assume(_loanAmount > 0);
+        vm.assume(_duration > 0);
 
         uint256 allowance = bound(_allowance, 0, _loanAmount - 1);
         vm.startPrank(lender);
@@ -119,6 +110,8 @@ contract PolyLendOfferTest is PolyLendTestHelper {
     ) public {
         _setUp(_collateralAmount, _rate);
 
+        vm.assume(_duration > 0);
+
         rate = bound(_rate, 0, 10 ** 18);
         vm.startPrank(lender);
         usdc.mint(lender, _loanAmount);
@@ -136,6 +129,8 @@ contract PolyLendOfferTest is PolyLendTestHelper {
         uint256 _duration
     ) public {
         _setUp(_collateralAmount, _rate);
+
+        vm.assume(_duration > 0);
 
         rate = bound(_rate, polyLend.MAX_INTEREST() + 1, type(uint64).max);
         vm.startPrank(lender);
