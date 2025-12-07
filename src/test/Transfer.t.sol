@@ -24,8 +24,10 @@ contract PolyLendTransferTest is PolyLendTestHelper {
     ) internal returns (uint256) {
 
         vm.assume(_loanAmount > 0);
-        vm.assume(_collateralAmount > 0);
         vm.assume(_minimumLoanAmount < _loanAmount);
+        vm.assume(_collateralAmount > 0);
+        vm.assume(_duration > 0);
+        vm.assume(_duration <= 60 days);
 
         rate = bound(_rate, 10 ** 18 + 1, polyLend.MAX_INTEREST());
 
@@ -70,7 +72,6 @@ contract PolyLendTransferTest is PolyLendTestHelper {
         uint256 _auctionLength,
         uint256 _newRate
     ) public {
-        vm.assume(_minimumDuration <= 60 days);
 
         uint256 loanId;
         uint256 callTime;
