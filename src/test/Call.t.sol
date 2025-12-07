@@ -10,6 +10,9 @@ contract PolyLendCallTest is PolyLendTestHelper {
     function _setUp(uint128 _collateralAmount, uint128 _loanAmount, uint256 _rate, uint256 _minimumLoanAmount, uint256 _duration, uint256 _minimumDuration) internal {
         vm.assume(_collateralAmount > 0);
         vm.assume(_duration <= 60 days);
+        vm.assume(_minimumDuration > 0);
+        vm.assume(_minimumDuration <= _duration);
+        vm.assume(_minimumLoanAmount < _loanAmount);
 
         rate = bound(_rate, 10 ** 18 + 1, polyLend.MAX_INTEREST());
 
@@ -45,6 +48,11 @@ contract PolyLendCallTest is PolyLendTestHelper {
         uint256 _minimumDuration
     ) public {
         _setUp(_collateralAmount, _loanAmount, _rate, _minimumLoanAmount, _duration, _minimumDuration);
+
+
+        vm.assume(_minimumDuration > 0);
+        vm.assume(_minimumDuration <= _duration);
+
         uint256 duration = bound(_duration, _minimumDuration, type(uint128).max);
 
         uint256 callTime = block.timestamp + duration;
