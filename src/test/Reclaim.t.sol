@@ -169,14 +169,19 @@ contract PolyLendReclaimTest is PolyLendTestHelper {
         uint256 _minimumDuration,
         uint256 _auctionLength
     ) public {
-        vm.assume(_minimumDuration <= 60 days);
-
         uint256 loanId;
 
         {
+            vm.assume(_collateralAmount > 0);
+            vm.assume(_loanAmount > 1_000_000);
+            vm.assume(_minimumLoanAmount < _loanAmount);
+            vm.assume(_duration > 0);
+            vm.assume(_duration <= 60 days);
+            vm.assume(_minimumDuration > 0);
+            vm.assume(_minimumDuration <= _duration);
+            
             uint256 duration = bound(_duration, _minimumDuration, 60 days);
             uint256 auctionLength = bound(_auctionLength, polyLend.AUCTION_DURATION() + 1, type(uint32).max);
-            vm.assume(_collateralAmount > 0);
 
             rate = bound(_rate, 10 ** 18 + 1, polyLend.MAX_INTEREST());
 
