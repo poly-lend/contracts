@@ -13,6 +13,10 @@ contract PolyLendRepayTest is PolyLendTestHelper {
         vm.assume(_duration <= 60 days);
         vm.assume(_loanAmount > 1_000_000);
         vm.assume(_minimumLoanAmount < _loanAmount);
+        vm.assume(_duration > 0);
+        vm.assume(_duration <= 60 days);
+        vm.assume(_minimumDuration > 0);
+        vm.assume(_minimumDuration <= _duration);
 
         rate = bound(_rate, 10 ** 18 + 1, polyLend.MAX_INTEREST());
 
@@ -25,7 +29,7 @@ contract PolyLendRepayTest is PolyLendTestHelper {
 
         vm.startPrank(lender);
         usdc.approve(address(polyLend), _loanAmount);
-        uint256[] memory positionIds = new uint256[](1);
+        uint256[] memory positionIds = new uint256[](2);
         positionIds[0] = positionId0;
         positionIds[1] = positionId1;
         uint256[] memory collateralAmounts = new uint256[](2);
@@ -47,7 +51,7 @@ contract PolyLendRepayTest is PolyLendTestHelper {
         uint256 _duration
     ) public {
         _setUp(_collateralAmount, _loanAmount, _rate, 0, _duration, _minimumDuration);
-        uint256 duration = bound(_duration, 0, 60 days);
+        uint256 duration = bound(_minimumDuration, 0, 60 days);
 
         uint256 paybackTime = block.timestamp + duration;
         vm.warp(paybackTime);
