@@ -2,6 +2,7 @@
 pragma solidity ^0.8.30;
 
 import {PolyLendTestHelper, Loan} from "./PolyLendTestHelper.sol";
+import {InterestLib} from "../InterestLib.sol";
 
 contract PolyLendReclaimTest is PolyLendTestHelper {
     uint256 rate;
@@ -26,7 +27,7 @@ contract PolyLendReclaimTest is PolyLendTestHelper {
         vm.assume(_minimumDuration > 0);
         vm.assume(_minimumDuration <= _duration);
 
-        rate = bound(_rate, 10 ** 18 + 1, polyLend.MAX_INTEREST());
+        rate = bound(_rate, InterestLib.ONE + 1, polyLend.MAX_INTEREST());
 
         _mintConditionalTokens(borrower, _collateralAmount, positionId0);
         usdc.mint(lender, _loanAmount);
@@ -183,7 +184,7 @@ contract PolyLendReclaimTest is PolyLendTestHelper {
             uint256 duration = bound(_duration, _minimumDuration, 60 days);
             uint256 auctionLength = bound(_auctionLength, polyLend.AUCTION_DURATION() + 1, type(uint32).max);
 
-            rate = bound(_rate, 10 ** 18 + 1, polyLend.MAX_INTEREST());
+            rate = bound(_rate, InterestLib.ONE + 1, polyLend.MAX_INTEREST());
 
             _mintConditionalTokens(borrower, _collateralAmount, positionId0);
             usdc.mint(lender, _loanAmount);

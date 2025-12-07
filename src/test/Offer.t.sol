@@ -67,6 +67,39 @@ contract PolyLendOfferTest is PolyLendTestHelper {
         assertEq(offer.collateralAmounts[1], _collateralAmount);
     }
 
+
+    function test_revert_PolyLendOfferTest_offer_InvalidDuration_and_LoanAmount(
+        uint128 _collateralAmount,
+        uint128 _loanAmount,
+        uint256 _rate,
+        uint256 _minimumLoanAmount,
+        uint128 _balance,
+        uint256 _duration
+    ) public {
+        _setUp(_collateralAmount, _rate);
+
+        vm.assume(_loanAmount > 0);
+        vm.assume(_minimumLoanAmount < _loanAmount);
+        vm.assume(_collateralAmount > 0);
+        vm.assume(_duration > 0);
+        vm.assume(_duration <= 60 days);
+
+        uint256 balance = bound(_balance, 0, _loanAmount - 1);
+        
+        vm.startPrank(lender);
+        usdc.mint(lender, balance);
+        vm.stopPrank();
+
+        vm.expectRevert(InvalidDuration.selector);
+        polyLend.offer(_loanAmount, rate, allPositionIds, allCollateralAmounts, _minimumLoanAmount, 0, false);
+        vm.stopPrank();
+
+        vm.startPrank(lender);
+        vm.expectRevert(InvalidLoanAmount.selector);
+        polyLend.offer(0, rate, allPositionIds, allCollateralAmounts, _minimumLoanAmount, _duration, false);
+        vm.stopPrank();
+    }
+
     function test_revert_PolyLendOfferTest_offer_InsufficientFunds(
         uint128 _collateralAmount,
         uint128 _loanAmount,

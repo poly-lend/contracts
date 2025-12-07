@@ -31,7 +31,7 @@ contract PolyLendTransferTest is PolyLendTestHelper {
         vm.assume(_minimumDuration > 0);
         vm.assume(_minimumDuration <= _duration);
 
-        rate = bound(_rate, 10 ** 18 + 1, polyLend.MAX_INTEREST());
+        rate = bound(_rate, InterestLib.ONE + 1, polyLend.MAX_INTEREST());
 
         _mintConditionalTokens(borrower, _collateralAmount, positionId0);
         usdc.mint(lender, _loanAmount);
@@ -147,7 +147,7 @@ contract PolyLendTransferTest is PolyLendTestHelper {
         vm.assume(_minimumDuration > 0);
         vm.assume(_minimumDuration <= _duration);
 
-        rate = bound(_rate, 10 ** 18 + 1, polyLend.MAX_INTEREST());
+        rate = bound(_rate, InterestLib.ONE + 1, polyLend.MAX_INTEREST());
 
         _mintConditionalTokens(borrower, _collateralAmount, positionId0);
         usdc.mint(lender, _loanAmount);

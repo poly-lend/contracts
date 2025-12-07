@@ -2,6 +2,7 @@
 pragma solidity ^0.8.30;
 
 import {PolyLendTestHelper, Offer} from "./PolyLendTestHelper.sol";
+import {InterestLib} from "../InterestLib.sol";
 
 contract PolyLendCancelOfferTest is PolyLendTestHelper {
     uint256 rate;
@@ -15,7 +16,7 @@ contract PolyLendCancelOfferTest is PolyLendTestHelper {
         vm.assume(_duration > 0);
         vm.assume(_duration <= 60 days);
 
-        rate = bound(_rate, 10 ** 18 + 1, polyLend.MAX_INTEREST());
+        rate = bound(_rate, InterestLib.ONE + 1, polyLend.MAX_INTEREST());
 
         _mintConditionalTokens(borrower, _collateralAmount, positionId0);
         usdc.mint(lender, _loanAmount);
