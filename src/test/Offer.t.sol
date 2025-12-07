@@ -119,6 +119,10 @@ contract PolyLendOfferTest is PolyLendTestHelper {
         _setUp(_collateralAmount, _rate);
 
         vm.assume(_duration > 0);
+        vm.assume(_duration <= 60 days);
+        vm.assume(_collateralAmount > 0);
+        vm.assume(_loanAmount > 0);
+        vm.assume(_minimumLoanAmount < _loanAmount);
 
         rate = bound(_rate, 0, 10 ** 18);
         vm.startPrank(lender);
@@ -139,6 +143,10 @@ contract PolyLendOfferTest is PolyLendTestHelper {
         _setUp(_collateralAmount, _rate);
 
         vm.assume(_duration > 0);
+        vm.assume(_duration <= 60 days);
+        vm.assume(_collateralAmount > 0);
+        vm.assume(_loanAmount > 0);
+        vm.assume(_minimumLoanAmount < _loanAmount);
 
         rate = bound(_rate, polyLend.MAX_INTEREST() + 1, type(uint64).max);
         vm.startPrank(lender);

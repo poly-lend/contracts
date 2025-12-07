@@ -192,6 +192,10 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
             revert InvalidDuration();
         }
 
+        if (_loanAmount == 0) {
+            revert InvalidLoanAmount();
+        }
+
         if (usdc.balanceOf(msg.sender) < _loanAmount) {
             revert InsufficientFunds();
         }
@@ -204,15 +208,15 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
             revert InvalidRate();
         }
 
-        if (_loanAmount == 0) {
-            revert InvalidLoanAmount();
-        }
-
         if (_positionIds.length == 0) {
             revert InvalidPositionList();
         }
 
-        if (_collateralAmounts.length != _positionIds.length) {
+        if(_positionIds.length == 0) {
+            revert EmptyPositionList();
+        }
+
+        if (_positionIds.length != _collateralAmounts.length) {
             revert InvalidCollateralAmounts();
         }
 
@@ -224,10 +228,6 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
 
         if (_loanAmount < _minimumLoanAmount) {
             revert InvalidMinimumLoanAmount();
-        }
-
-        if(_positionIds.length == 0) {
-            revert EmptyPositionList();
         }
 
         uint256 offerId = nextOfferId;
