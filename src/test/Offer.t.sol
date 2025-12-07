@@ -14,6 +14,13 @@ contract PolyLendOfferTest is PolyLendTestHelper {
         uint256 _rate
     ) internal {
         rate = bound(_rate, 10 ** 18 + 1, polyLend.MAX_INTEREST());
+
+        allPositionIds = new uint256[](2);
+        allPositionIds[0] = positionId0;
+        allPositionIds[1] = positionId1;
+        allCollateralAmounts = new uint256[](2);
+        allCollateralAmounts[0] = _collateralAmount;
+        allCollateralAmounts[1] = _collateralAmount;
     }
 
     function test_PolyLendOfferTest_offer(
@@ -24,18 +31,18 @@ contract PolyLendOfferTest is PolyLendTestHelper {
         uint256 _duration
     ) public {
         _setUp(_collateralAmount, _rate);
-
-        vm.startPrank(lender);
+        
         vm.assume(_loanAmount > 0);
         vm.assume(_minimumLoanAmount < _loanAmount);
         vm.assume(_duration > 0);
         vm.assume(_duration <= 60 days);
 
+        vm.startPrank(lender);
         usdc.mint(lender, _loanAmount);
         usdc.approve(address(polyLend), _loanAmount);
         
         vm.expectEmit();
-        //emit LoanOffered(0, lender, _loanAmount, rate);
+        emit LoanOffered(0, lender, _loanAmount, rate);
         polyLend.offer(_loanAmount, rate, allPositionIds, allCollateralAmounts, _minimumLoanAmount, _duration, false);
         vm.stopPrank();
 
