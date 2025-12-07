@@ -437,6 +437,10 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
             }
         }
 
+        if (usdc.allowance(msg.sender, address(this)) < amountOwed) {
+            revert InsufficientAllowance();
+        }
+
         // transfer usdc from the borrower to the lender and fee recipient
         SafeTransferLib.safeTransferFrom(address(usdc), msg.sender, loan.lender, lenderAmount);
         SafeTransferLib.safeTransferFrom(address(usdc), msg.sender, feeRecipient, fee);
