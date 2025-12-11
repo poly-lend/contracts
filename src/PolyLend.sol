@@ -482,7 +482,7 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
             revert InvalidRate();
         }
 
-        uint256 currentInterestRate = (block.timestamp - loan.callTime) * InterestLib.ONE_THOUSAND_APY / AUCTION_DURATION + InterestLib.ONE;
+        uint256 currentInterestRate = InterestLib.ONE + ((block.timestamp - loans[_loanId].callTime) * (MAX_INTEREST - InterestLib.ONE) / AUCTION_DURATION);
 
         // _newRate must be less than or equal to the current offered rate
         if (_newRate > currentInterestRate) {

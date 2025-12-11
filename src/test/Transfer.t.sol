@@ -212,7 +212,7 @@ contract PolyLendTransferTest is PolyLendTestHelper {
         uint128 _collateralAmount,
         uint128 _loanAmount,
         uint256 _rate,
-        uint32 _minimumDuration,
+        uint256 _minimumDuration,
         uint256 _duration,
         uint256 _auctionLength,
         uint256 _newRate
@@ -232,15 +232,17 @@ contract PolyLendTransferTest is PolyLendTestHelper {
             uint256 duration = bound(_duration, _minimumDuration, 60 days);
             uint256 auctionLength = bound(_auctionLength, 0, polyLend.AUCTION_DURATION());
             loanId = _setUp(_collateralAmount, _loanAmount, _rate, 0, duration, _minimumDuration);
-
-            callTime = block.timestamp;
             skip(auctionLength);
         }
 
-        uint256 newRate = bound(_newRate, _getNewRate(callTime) + 1, type(uint64).max);
 
+        Loan memory loan = _getLoan(loanId);
+        callTime = loan.callTime;
+        
         uint256 amountOwed = polyLend.getAmountOwed(loanId, callTime);
         usdc.mint(newLender, amountOwed);
+
+        uint256 newRate = bound(_newRate, _getNewRate(callTime) + 1, type(uint64).max);
 
         vm.startPrank(newLender);
         usdc.approve(address(polyLend), amountOwed);
