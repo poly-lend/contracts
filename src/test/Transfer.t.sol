@@ -235,14 +235,12 @@ contract PolyLendTransferTest is PolyLendTestHelper {
             skip(auctionLength);
         }
 
-
         Loan memory loan = _getLoan(loanId);
         callTime = loan.callTime;
-        
+        uint256 newRate = bound(_newRate, _getNewRate(callTime) + 1, type(uint64).max);
+
         uint256 amountOwed = polyLend.getAmountOwed(loanId, callTime);
         usdc.mint(newLender, amountOwed);
-
-        uint256 newRate = bound(_newRate, _getNewRate(callTime) + 1, type(uint64).max);
 
         vm.startPrank(newLender);
         usdc.approve(address(polyLend), amountOwed);
