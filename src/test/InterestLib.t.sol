@@ -4,9 +4,13 @@ pragma solidity ^0.8.30;
 import {Test, console2 as console, stdStorage, StdStorage, stdError} from "../../lib/forge-std/src/Test.sol";
 import {InterestLib} from "../InterestLib.sol";
 
+/// @title InterestLibTest
+/// @notice Tests for the InterestLib fixed-point exponentiation library,
+/// @notice validating pow() correctness and MAX_INTEREST rate accuracy
 contract InterestLibTest is Test {
     using InterestLib for uint256;
 
+    /// @dev Verifies basic pow() operation: 2^3 = 8 in 18-decimal fixed-point
     function test_InterestLibTest_pow() public pure {
         uint256 base = 2 * InterestLib.ONE;
         uint256 exponent = 3;

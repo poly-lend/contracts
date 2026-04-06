@@ -4,11 +4,14 @@ pragma solidity ^0.8.30;
 import {PolyLendTestHelper, Offer} from "./PolyLendTestHelper.sol";
 import {InterestLib} from "../InterestLib.sol";
 
+/// @title PolyLendCancelOfferTest
+/// @notice Tests for cancelling offers, access control, and post-cancel state
 contract PolyLendCancelOfferTest is PolyLendTestHelper {
     uint256 rate;
     uint256 requestId;
     uint256 offerId;
 
+    /// @notice Creates a valid offer for cancellation tests
     function _setUp(
         uint128 _collateralAmount,
         uint128 _loanAmount,
@@ -44,6 +47,8 @@ contract PolyLendCancelOfferTest is PolyLendTestHelper {
         vm.stopPrank();
     }
 
+    /// @dev Lender cancels an offer; verifies the lender field is zeroed out
+    /// @dev while other offer fields remain unchanged
     function test_PolyLendCancelOfferTest_cancelOffer(
         uint128 _amount,
         uint128 _loanAmount,
@@ -64,6 +69,7 @@ contract PolyLendCancelOfferTest is PolyLendTestHelper {
         assertEq(offer.rate, rate);
     }
 
+    /// @dev Reverts when a non-lender address attempts to cancel an offer
     function test_revert_PolyLendCancelOfferTest_cancelOffer_OnlyLender(
         uint128 _amount,
         uint128 _loanAmount,
@@ -80,6 +86,7 @@ contract PolyLendCancelOfferTest is PolyLendTestHelper {
         vm.stopPrank();
     }
 
+    /// @dev Reverts when a borrower tries to accept an already-cancelled offer
     function test_revert_PolyLendCancelOfferTest_accept_InvalidOffer(
         uint128 _amount,
         uint128 _loanAmount,
@@ -98,6 +105,8 @@ contract PolyLendCancelOfferTest is PolyLendTestHelper {
         vm.stopPrank();
     }
 
+    /// @dev Reverts when the lender tries to cancel an already-cancelled offer
+    /// @dev (lender is zeroed, so the original lender fails the OnlyLender check)
     function test_revert_PolyLendCancelOfferTest_cancelRequest_alreadyCanceled(
         uint128 _amount,
         uint128 _loanAmount,

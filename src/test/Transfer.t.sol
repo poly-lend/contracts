@@ -4,6 +4,9 @@ pragma solidity ^0.8.30;
 import {PolyLendTestHelper, Loan} from "./PolyLendTestHelper.sol";
 import {InterestLib} from "../InterestLib.sol";
 
+/// @title PolyLendTransferTest
+/// @notice Tests for the Dutch auction loan transfer mechanism, where a new lender
+/// @notice can take over a called loan at a rate determined by the auction curve
 contract PolyLendTransferTest is PolyLendTestHelper {
     address newLender;
     uint256 rate;
@@ -14,6 +17,8 @@ contract PolyLendTransferTest is PolyLendTestHelper {
         newLender = vm.createWallet("newLender").addr;
     }
 
+    /// @notice Creates an offer, accepts it, skips past duration, and calls the loan
+    /// @notice to set up the Dutch auction state needed for transfer tests
     function _setUp(
         uint128 _collateralAmount,
         uint128 _loanAmount,
@@ -65,6 +70,9 @@ contract PolyLendTransferTest is PolyLendTestHelper {
         return loanId;
     }
 
+    /// @dev A new lender transfers a called loan during the Dutch auction;
+    /// @dev verifies the new loan is created with correct fields (new lender, new rate,
+    /// @dev reset startTime, zero minimumDuration, zero callTime)
     function test_PolyLendTransferTest_transfer(
         uint128 _collateralAmount,
         uint128 _loanAmount,
@@ -120,6 +128,7 @@ contract PolyLendTransferTest is PolyLendTestHelper {
         //assertEq(usdc.balanceOf(newLender), 0);
     }
 
+    /// @dev Reverts when trying to transfer a non-existent loan
     function test_revert_PolyLendTransferTest_transfer_InvalidLoan(uint256 _loanId, uint256 _newRate) public {
         vm.assume(_loanId != 0);
 
@@ -129,6 +138,7 @@ contract PolyLendTransferTest is PolyLendTestHelper {
         vm.stopPrank();
     }
 
+    /// @dev Reverts when trying to transfer a loan that has not been called
     function test_revert_PolyLendTransferTest_transfer_LoanIsNotCalled(
         uint128 _collateralAmount,
         uint128 _loanAmount,
@@ -182,6 +192,7 @@ contract PolyLendTransferTest is PolyLendTestHelper {
         vm.stopPrank();
     }
 
+    /// @dev Reverts when trying to transfer after the Dutch auction period has ended
     function test_revert_PolyLendTransferTest_transfer_AuctionHasEnded(
         uint128 _collateralAmount,
         uint128 _loanAmount,
@@ -211,6 +222,7 @@ contract PolyLendTransferTest is PolyLendTestHelper {
         vm.stopPrank();
     }
 
+    /// @dev Reverts when the new lender offers a rate above the current auction rate
     function test_revert_PolyLendTransferTest_transfer_InvalidRate(
         uint128 _collateralAmount,
         uint128 _loanAmount,

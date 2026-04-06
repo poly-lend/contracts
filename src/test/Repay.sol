@@ -4,11 +4,15 @@ pragma solidity ^0.8.30;
 import {PolyLendTestHelper, Loan} from "./PolyLendTestHelper.sol";
 import {InterestLib} from "../InterestLib.sol";
 
+/// @title PolyLendRepayTest
+/// @notice Tests for loan repayment, including normal repay, called loan repay,
+/// @notice payback buffer window, access control, timestamp validation, and allowance checks
 contract PolyLendRepayTest is PolyLendTestHelper {
     uint256 loanId;
     uint256 rate;
     uint256 offerId;
 
+    /// @notice Creates an offer, accepts it, producing an active loan for repay tests
     function _setUp(
         uint128 _collateralAmount,
         uint128 _loanAmount,
@@ -52,6 +56,9 @@ contract PolyLendRepayTest is PolyLendTestHelper {
         vm.stopPrank();
     }
 
+    /// @dev Borrower repays an uncalled loan after the minimum duration;
+    /// @dev verifies loan is cleared, USDC balances are correct (lender receives
+    /// @dev principal + interest minus fee), and collateral is returned to borrower
     function test_PolyLendRepayTest_repay(
         uint64 _collateralAmount,
         uint128 _loanAmount,
@@ -85,6 +92,8 @@ contract PolyLendRepayTest is PolyLendTestHelper {
         assertEq(conditionalTokens.balanceOf(address(borrower), positionId0), _collateralAmount);
     }
 
+    /// @dev Borrower repays a called loan during the auction period;
+    /// @dev the repay timestamp must equal the call time, and balances settle correctly
     function test_PolyLendRepayTest_repay_calledLoan(
         uint64 _collateralAmount,
         uint128 _loanAmount,
@@ -126,6 +135,8 @@ contract PolyLendRepayTest is PolyLendTestHelper {
         assertEq(conditionalTokens.balanceOf(address(borrower), positionId0), _collateralAmount);
     }
 
+    /// @dev Borrower repays with a timestamp within the PAYBACK_BUFFER window;
+    /// @dev validates that slightly stale timestamps (within 60s) are accepted
     function test_PolyLendRepayTest_repay_paybackBuffer(
         uint64 _collateralAmount,
         uint128 _loanAmount,
@@ -160,6 +171,8 @@ contract PolyLendRepayTest is PolyLendTestHelper {
         assertEq(conditionalTokens.balanceOf(address(borrower), positionId0), _collateralAmount);
     }
 
+    /// @dev Reverts when trying to repay a loan that has already been repaid
+    /// @dev (borrower is zeroed after repay, so the caller fails OnlyBorrower)
     function test_revert_PolyLendRepayTest_repay_alreadyRepaid_OnlyBorrower(
         uint64 _collateralAmount,
         uint128 _loanAmount,
@@ -187,6 +200,7 @@ contract PolyLendRepayTest is PolyLendTestHelper {
         vm.stopPrank();
     }
 
+    /// @dev Reverts when a non-borrower address attempts to repay a loan
     function test_revert_PolyLendRepayTest_repay_OnlyBorrower(
         uint64 _collateralAmount,
         uint128 _loanAmount,
@@ -264,6 +278,7 @@ contract PolyLendRepayTest is PolyLendTestHelper {
         vm.stopPrank();
     }
 
+    /// @dev Reverts when the borrower's USDC allowance is less than the amount owed
     function test_revert_PolyLendRepayTest_repay_InsufficientAllowance(
         uint64 _collateralAmount,
         uint128 _loanAmount,

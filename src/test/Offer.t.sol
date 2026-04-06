@@ -4,11 +4,14 @@ pragma solidity ^0.8.30;
 import {PolyLendTestHelper, Offer} from "./PolyLendTestHelper.sol";
 import {InterestLib} from "../InterestLib.sol";
 
+/// @title PolyLendOfferTest
+/// @notice Tests for offer creation, validation of parameters, and revert conditions
 contract PolyLendOfferTest is PolyLendTestHelper {
     uint256 rate;
     uint256[] allPositionIds;
     uint256[] allCollateralAmounts;
 
+    /// @notice Initializes position IDs and collateral amounts for offer tests
     function _setUp(uint128 _collateralAmount, uint256 _rate) internal {
         rate = bound(_rate, InterestLib.ONE + 1, polyLend.MAX_INTEREST());
 
@@ -20,6 +23,8 @@ contract PolyLendOfferTest is PolyLendTestHelper {
         allCollateralAmounts[1] = _collateralAmount;
     }
 
+    /// @dev Creates a valid offer and verifies all stored fields match input parameters,
+    /// @dev including lender, amounts, rate, position IDs, and collateral amounts
     function test_PolyLendOfferTest_offer(
         uint128 _collateralAmount,
         uint128 _loanAmount,
@@ -63,6 +68,8 @@ contract PolyLendOfferTest is PolyLendTestHelper {
         assertEq(offer.collateralAmounts[1], _collateralAmount);
     }
 
+    /// @dev Reverts with InvalidDuration when duration is zero,
+    /// @dev and reverts with InvalidLoanAmount when loan amount is zero
     function test_revert_PolyLendOfferTest_offer_InvalidDuration_and_LoanAmount(
         uint128 _collateralAmount,
         uint128 _loanAmount,
@@ -95,6 +102,7 @@ contract PolyLendOfferTest is PolyLendTestHelper {
         vm.stopPrank();
     }
 
+    /// @dev Reverts when the lender's USDC balance is less than the loan amount
     function test_revert_PolyLendOfferTest_offer_InsufficientFunds(
         uint128 _collateralAmount,
         uint128 _loanAmount,
@@ -116,6 +124,7 @@ contract PolyLendOfferTest is PolyLendTestHelper {
         vm.stopPrank();
     }
 
+    /// @dev Reverts when the lender's USDC allowance to PolyLend is less than the loan amount
     function test_revert_PolyLendOfferTest_offer_InsufficientAllowance(
         uint128 _collateralAmount,
         uint128 _loanAmount,
@@ -138,6 +147,7 @@ contract PolyLendOfferTest is PolyLendTestHelper {
         vm.stopPrank();
     }
 
+    /// @dev Reverts when the interest rate is at or below InterestLib.ONE (zero or negative real rate)
     function test_revert_PolyLendOfferTest_offer_InvalidRate_tooLow(
         uint128 _collateralAmount,
         uint128 _loanAmount,
@@ -162,6 +172,7 @@ contract PolyLendOfferTest is PolyLendTestHelper {
         vm.stopPrank();
     }
 
+    /// @dev Reverts when the interest rate exceeds the maximum allowed (1000% APY)
     function test_revert_PolyLendOfferTest_offer_InvalidRate_tooHigh(
         uint128 _collateralAmount,
         uint128 _loanAmount,
@@ -186,6 +197,9 @@ contract PolyLendOfferTest is PolyLendTestHelper {
         vm.stopPrank();
     }
 
+    /// @dev Reverts with InvalidPositionList when position IDs array is empty,
+    /// @dev and reverts with InvalidCollateralAmounts when collateral array is empty
+    /// @dev or has a different length than the position IDs array
     function test_revert_PolyLendOfferTest_offer_InvalidPositionList(
         uint128 _collateralAmount,
         uint128 _loanAmount,

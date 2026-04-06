@@ -4,10 +4,14 @@ pragma solidity ^0.8.30;
 import {PolyLendTestHelper, Loan, Offer} from "./PolyLendTestHelper.sol";
 import {InterestLib} from "../InterestLib.sol";
 
+/// @title PolyLendPerpetualTest
+/// @notice Tests for perpetual offer behavior: borrowedAmount restoration on repay/transfer,
+/// @notice re-borrowing after repay, and non-perpetual comparison
 contract PolyLendPerpetualTest is PolyLendTestHelper {
     uint256 rate;
     uint256 offerId;
 
+    /// @notice Creates a perpetual offer for perpetual-specific tests
     function _setUp(uint128 _collateralAmount, uint128 _loanAmount, uint256 _rate, uint256 _duration)
         internal
         returns (uint256)

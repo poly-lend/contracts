@@ -4,10 +4,13 @@ pragma solidity ^0.8.30;
 import {PolyLendTestHelper, Loan} from "./PolyLendTestHelper.sol";
 import {InterestLib} from "../InterestLib.sol";
 
+/// @title PolyLendAcceptTest
+/// @notice Tests for accepting loan offers and verifying loan state after acceptance
 contract PolyLendAcceptTest is PolyLendTestHelper {
     uint256 rate;
     uint256 offerId;
 
+    /// @notice Creates a valid offer that the borrower can accept
     function _setUp(
         uint128 _collateralAmount,
         uint128 _loanAmount,
@@ -43,6 +46,9 @@ contract PolyLendAcceptTest is PolyLendTestHelper {
         vm.stopPrank();
     }
 
+    /// @dev Borrower accepts a valid offer; verifies all loan fields are stored correctly,
+    /// @dev USDC is transferred to the borrower, collateral is held by PolyLend,
+    /// @dev and the loan ID counter is incremented
     function test_PolyLendAcceptTest_accept(
         uint128 _collateralAmount,
         uint128 _loanAmount,
@@ -80,6 +86,7 @@ contract PolyLendAcceptTest is PolyLendTestHelper {
         assertEq(polyLend.nextLoanId(), 1);
     }
 
+    /// @dev Reverts when trying to accept a non-existent offer ID
     function test_revert_PolyLendAcceptTest_accept_InvalidOffer(
         uint128 _collateralAmount,
         uint128 _loanAmount,

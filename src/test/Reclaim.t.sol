@@ -4,6 +4,9 @@ pragma solidity ^0.8.30;
 import {PolyLendTestHelper, Loan} from "./PolyLendTestHelper.sol";
 import {InterestLib} from "../InterestLib.sol";
 
+/// @title PolyLendReclaimTest
+/// @notice Tests for reclaiming collateral after the Dutch auction ends without a transfer,
+/// @notice including access control and state validation
 contract PolyLendReclaimTest is PolyLendTestHelper {
     uint256 rate;
 
@@ -11,6 +14,8 @@ contract PolyLendReclaimTest is PolyLendTestHelper {
         super.setUp();
     }
 
+    /// @notice Creates an offer, accepts it, skips past duration, and calls the loan
+    /// @notice to set up the post-auction state needed for reclaim tests
     function _setUp(
         uint128 _collateralAmount,
         uint128 _loanAmount,
@@ -61,6 +66,8 @@ contract PolyLendReclaimTest is PolyLendTestHelper {
         return loanId;
     }
 
+    /// @dev Lender reclaims collateral after the auction period has ended;
+    /// @dev verifies the loan is cleared and collateral is transferred to the lender
     function test_PolyLendTransferTest_reclaim(
         uint128 _collateralAmount,
         uint128 _loanAmount,
@@ -96,6 +103,7 @@ contract PolyLendReclaimTest is PolyLendTestHelper {
         assertEq(conditionalTokens.balanceOf(lender, positionId0), _collateralAmount);
     }
 
+    /// @dev Reverts when trying to reclaim a non-existent loan
     function test_revert_PolyLendTransferTest_reclaim_InvalidLoan_loanDoesNotExist(uint128 _loanId) public {
         vm.startPrank(lender);
         vm.expectRevert(InvalidLoan.selector);
@@ -103,6 +111,7 @@ contract PolyLendReclaimTest is PolyLendTestHelper {
         vm.stopPrank();
     }
 
+    /// @dev Reverts when trying to reclaim a loan that has already been reclaimed
     function test_revert_PolyLendTransferTest_reclaim_InvalidLoan_alreadyReclaimed(
         uint128 _collateralAmount,
         uint128 _loanAmount,
@@ -132,6 +141,7 @@ contract PolyLendReclaimTest is PolyLendTestHelper {
         vm.stopPrank();
     }
 
+    /// @dev Reverts when a non-lender address attempts to reclaim collateral
     function test_revert_PolyLendTransferTest_reclaim_OnlyLender(
         uint128 _collateralAmount,
         uint128 _loanAmount,
@@ -162,6 +172,7 @@ contract PolyLendReclaimTest is PolyLendTestHelper {
         vm.stopPrank();
     }
 
+    /// @dev Reverts when trying to reclaim a loan that has not been called
     function test_revert_PolyLendTransferTest_reclaim_LoanIsNotCalled(
         uint128 _collateralAmount,
         uint128 _loanAmount,
@@ -219,6 +230,7 @@ contract PolyLendReclaimTest is PolyLendTestHelper {
         vm.stopPrank();
     }
 
+    /// @dev Reverts when trying to reclaim before the auction period has ended
     function test_revert_PolyLendTransferTest_reclaim_AuctionHasNotEnded(
         uint128 _collateralAmount,
         uint128 _loanAmount,

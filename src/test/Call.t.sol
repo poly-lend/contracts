@@ -3,10 +3,14 @@ pragma solidity ^0.8.30;
 
 import {PolyLendTestHelper, Loan} from "./PolyLendTestHelper.sol";
 
+/// @title PolyLendCallTest
+/// @notice Tests for calling loans (initiating the Dutch auction), access control,
+/// @notice and interactions with minimum duration and loan state
 contract PolyLendCallTest is PolyLendTestHelper {
     uint256 loanId;
     uint256 rate;
 
+    /// @notice Creates an offer and accepts it, producing an active loan for call tests
     function _setUp(
         uint128 _collateralAmount,
         uint128 _loanAmount,
@@ -47,6 +51,8 @@ contract PolyLendCallTest is PolyLendTestHelper {
         vm.stopPrank();
     }
 
+    /// @dev Lender calls a loan after the minimum duration has passed;
+    /// @dev verifies callTime is set and all other loan fields remain unchanged
     function test_PolyLendCallTest_call(
         uint128 _collateralAmount,
         uint128 _loanAmount,
@@ -83,6 +89,7 @@ contract PolyLendCallTest is PolyLendTestHelper {
         assertEq(loan.callTime, block.timestamp);
     }
 
+    /// @dev Reverts when a non-lender address attempts to call a loan
     function test_revert_PolyLendCallTest_call_OnlyLender(
         uint128 _collateralAmount,
         uint128 _loanAmount,
@@ -101,6 +108,7 @@ contract PolyLendCallTest is PolyLendTestHelper {
         vm.stopPrank();
     }
 
+    /// @dev Reverts when the lender tries to call a loan before the minimum duration has elapsed
     function test_revert_PolyLendCallTest_call_MinimumDurationHasNotPassed(
         uint128 _collateralAmount,
         uint128 _loanAmount,
@@ -122,6 +130,7 @@ contract PolyLendCallTest is PolyLendTestHelper {
         vm.stopPrank();
     }
 
+    /// @dev Reverts when the lender tries to call a loan that is already called
     function test_revert_PolyLendCallTest_call_LoanIsCalled(
         uint128 _collateralAmount,
         uint128 _loanAmount,
@@ -142,6 +151,8 @@ contract PolyLendCallTest is PolyLendTestHelper {
         vm.stopPrank();
     }
 
+    /// @dev Reverts when trying to call a loan that has already been repaid
+    /// @dev (borrower field is zeroed after repay, so the loan is invalid)
     function test_revert_PolyLendCallTest_loanIsRepaid(
         uint128 _collateralAmount,
         uint128 _loanAmount,

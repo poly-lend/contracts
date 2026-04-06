@@ -4,10 +4,14 @@ pragma solidity ^0.8.30;
 import {PolyLendTestHelper, Loan, Offer} from "./PolyLendTestHelper.sol";
 import {InterestLib} from "../InterestLib.sol";
 
+/// @title PolyLendPartialBorrowTest
+/// @notice Tests for partial collateral borrowing, verifying proportional loan amounts
+/// @notice and minimum loan amount enforcement
 contract PolyLendPartialBorrowTest is PolyLendTestHelper {
     uint256 rate;
     uint256 offerId;
 
+    /// @notice Creates an offer with a single accepted position for partial borrow tests
     function _setUp(uint128 _collateralAmount, uint128 _loanAmount, uint256 _rate, uint256 _duration) internal {
         vm.assume(_collateralAmount > 1);
         vm.assume(_loanAmount > 1_000_000);

@@ -4,12 +4,16 @@ pragma solidity ^0.8.30;
 import {PolyLendTestHelper, Offer} from "./PolyLendTestHelper.sol";
 import {InterestLib} from "../InterestLib.sol";
 
+/// @title PolyLendAcceptValidationTest
+/// @notice Tests for all accept() input validation reverts: collateral checks,
+/// @notice approval, position validity, collateral limits, minimum duration, and capacity
 contract PolyLendAcceptValidationTest is PolyLendTestHelper {
     uint256 rate;
     uint256 offerId;
     uint256[] positionIds;
     uint256[] collateralAmounts;
 
+    /// @notice Creates a valid offer for accept validation tests
     function _setUp(uint128 _collateralAmount, uint128 _loanAmount, uint256 _rate, uint256 _duration) internal {
         vm.assume(_collateralAmount > 0);
         vm.assume(_loanAmount > 1_000_000);

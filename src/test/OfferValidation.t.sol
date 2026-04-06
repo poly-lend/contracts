@@ -4,6 +4,8 @@ pragma solidity ^0.8.30;
 import {PolyLendTestHelper} from "./PolyLendTestHelper.sol";
 import {InterestLib} from "../InterestLib.sol";
 
+/// @title PolyLendOfferValidationTest
+/// @notice Tests for additional offer() validation: zero collateral, minimum loan amount, and perpetual flag
 contract PolyLendOfferValidationTest is PolyLendTestHelper {
     /// @dev Revert if any collateral amount in the array is zero
     function test_revert_offer_CollateralAmountIsZero(uint128 _loanAmount, uint256 _rate, uint256 _duration) public {

@@ -8,6 +8,10 @@ import {pfUSDC} from "../dev/USDC.sol";
 import {DeployLib} from "../dev/DeployLib.sol";
 import {IConditionalTokens} from "../interfaces/IConditionalTokens.sol";
 
+/// @title PolyLendTestHelper
+/// @notice Base test contract that deploys PolyLend, mock USDC, and ConditionalTokens,
+/// @notice sets up test actors (oracle, borrower, splitter, lender), and provides
+/// @notice helper functions for minting conditional tokens and reading on-chain state
 contract PolyLendTestHelper is Test, IPolyLend {
     pfUSDC usdc;
     IConditionalTokens conditionalTokens;
@@ -48,6 +52,8 @@ contract PolyLendTestHelper is Test, IPolyLend {
         positionId1 = conditionalTokens.getPositionId(address(usdc), collectionId1);
     }
 
+    /// @notice Mints conditional tokens by splitting USDC through the ConditionalTokens contract
+    /// @notice and transferring the specified position to the recipient
     function _mintConditionalTokens(address _to, uint256 _amount, uint256 _positionId) internal {
         vm.startPrank(splitter);
         usdc.mint(splitter, _amount);
@@ -62,6 +68,7 @@ contract PolyLendTestHelper is Test, IPolyLend {
         vm.stopPrank();
     }
 
+    /// @notice Reads an offer from storage and returns it as a structured Offer memory object
     function _getOffer(uint256 _offerId) internal view returns (Offer memory) {
         (
             uint256 offerId_,
@@ -92,6 +99,7 @@ contract PolyLendTestHelper is Test, IPolyLend {
         });
     }
 
+    /// @notice Reads a loan from storage and returns it as a structured Loan memory object
     function _getLoan(uint256 _loanId) internal view returns (Loan memory) {
         (
             uint256 loanId_,
@@ -126,6 +134,7 @@ contract PolyLendTestHelper is Test, IPolyLend {
         });
     }
 
+    /// @notice Computes the current Dutch auction rate based on elapsed time since the loan was called
     function _getNewRate(uint256 _callTime) internal view returns (uint256) {
         uint256 passedDuration = block.timestamp - _callTime;
         return (InterestLib.ONE_THOUSAND_APY * passedDuration) / polyLend.AUCTION_DURATION() + InterestLib.ONE;
