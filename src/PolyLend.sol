@@ -86,13 +86,13 @@ interface IPolyLend {
     error InvalidMinimumLoanAmount();
     error InvalidLoanAmount();
     error InvalidPosition();
-    error EmptyPositionList();
+
     error LoanAmountExceedsLimit();
     error InsufficientCollateralBalance();
     error CollateralIsNotApproved();
     error OnlyBorrower();
     error OnlyLender();
-    error InvalidRequest();
+
     error InvalidOffer();
     error InvalidLoan();
     error InsufficientFunds();
