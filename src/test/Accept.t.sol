@@ -9,10 +9,10 @@ contract PolyLendAcceptTest is PolyLendTestHelper {
     uint256 offerId;
 
     function _setUp(
-        uint128 _collateralAmount, 
-        uint128 _loanAmount, 
-        uint256 _rate, 
-        uint256 _minimumLoanAmount, 
+        uint128 _collateralAmount,
+        uint128 _loanAmount,
+        uint256 _rate,
+        uint256 _minimumLoanAmount,
         uint256 _duration
     ) internal {
         vm.assume(_loanAmount > 0);
@@ -38,7 +38,8 @@ contract PolyLendAcceptTest is PolyLendTestHelper {
         uint256[] memory collateralAmounts = new uint256[](2);
         collateralAmounts[0] = _collateralAmount;
         collateralAmounts[1] = _collateralAmount;
-        offerId = polyLend.offer(_loanAmount, rate, positionIds, collateralAmounts, _minimumLoanAmount, _duration, false);
+        offerId =
+            polyLend.offer(_loanAmount, rate, positionIds, collateralAmounts, _minimumLoanAmount, _duration, false);
         vm.stopPrank();
     }
 

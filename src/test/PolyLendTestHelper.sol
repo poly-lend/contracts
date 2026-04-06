@@ -26,7 +26,12 @@ contract PolyLendTestHelper is Test, IPolyLend {
     function setUp() public virtual {
         usdc = new pfUSDC();
         conditionalTokens = IConditionalTokens(DeployLib.deployConditionalTokens());
-        polyLend = new PolyLend(address(conditionalTokens), address(usdc), 0x0000000000000000000000000000000000000000,0x0000000000000000000000000000000000000000);
+        polyLend = new PolyLend(
+            address(conditionalTokens),
+            address(usdc),
+            0x0000000000000000000000000000000000000000,
+            0x0000000000000000000000000000000000000000
+        );
 
         oracle = vm.createWallet("oracle").addr;
         borrower = vm.createWallet("borrower").addr;
@@ -73,9 +78,9 @@ contract PolyLendTestHelper is Test, IPolyLend {
         uint256[] memory positionIds = polyLend.getOfferPositionIds(_offerId);
         uint256[] memory collateralAmounts = polyLend.getOfferCollateralAmounts(_offerId);
         return Offer({
-            offerId: offerId_, 
-            lender: lender_, 
-            loanAmount: loanAmount_, 
+            offerId: offerId_,
+            lender: lender_,
+            loanAmount: loanAmount_,
             rate: rate_,
             collateralAmounts: collateralAmounts,
             minimumLoanAmount: minimumLoanAmount_,

@@ -7,7 +7,14 @@ contract PolyLendCallTest is PolyLendTestHelper {
     uint256 loanId;
     uint256 rate;
 
-    function _setUp(uint128 _collateralAmount, uint128 _loanAmount, uint256 _rate, uint256 _minimumLoanAmount, uint256 _duration, uint256 _minimumDuration) internal {
+    function _setUp(
+        uint128 _collateralAmount,
+        uint128 _loanAmount,
+        uint256 _rate,
+        uint256 _minimumLoanAmount,
+        uint256 _duration,
+        uint256 _minimumDuration
+    ) internal {
         vm.assume(_collateralAmount > 0);
         vm.assume(_duration <= 60 days);
         vm.assume(_minimumDuration > 0);
@@ -31,7 +38,8 @@ contract PolyLendCallTest is PolyLendTestHelper {
         uint256[] memory collateralAmounts = new uint256[](2);
         collateralAmounts[0] = _collateralAmount;
         collateralAmounts[1] = _collateralAmount;
-        uint256 offerId = polyLend.offer(_loanAmount, rate, positionIds, collateralAmounts, _minimumLoanAmount, _duration, false);
+        uint256 offerId =
+            polyLend.offer(_loanAmount, rate, positionIds, collateralAmounts, _minimumLoanAmount, _duration, false);
         vm.stopPrank();
 
         vm.startPrank(borrower);
@@ -48,7 +56,6 @@ contract PolyLendCallTest is PolyLendTestHelper {
         uint256 _minimumDuration
     ) public {
         _setUp(_collateralAmount, _loanAmount, _rate, _minimumLoanAmount, _duration, _minimumDuration);
-
 
         vm.assume(_minimumDuration > 0);
         vm.assume(_minimumDuration <= _duration);

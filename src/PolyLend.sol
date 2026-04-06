@@ -25,7 +25,6 @@ struct Loan {
     bool isTransfered;
 }
 
-
 /// @notice Offer struct
 struct Offer {
     uint256 offerId;
@@ -48,7 +47,9 @@ interface IPolyLend {
     event LoanCalled(uint256 indexed id, uint256 callTime);
     event LoanOffered(uint256 indexed id, address indexed lender, uint256 loanAmount, uint256 rate);
     event LoanRepaid(uint256 indexed id, uint256 indexed offerId);
-    event LoanTransferred(uint256 indexed oldId, uint256 indexed newId, address indexed newLender, uint256 offerId, uint256 newRate);
+    event LoanTransferred(
+        uint256 indexed oldId, uint256 indexed newId, address indexed newLender, uint256 offerId, uint256 newRate
+    );
     event LoanReclaimed(uint256 indexed id);
     event LoanOfferCanceled(uint256 indexed id);
 
@@ -96,10 +97,10 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
     /// @notice buffer for payback time
     uint256 public constant PAYBACK_BUFFER = 1 minutes;
 
-    /// @notice protocol fee from lenders yield in basis points 
+    /// @notice protocol fee from lenders yield in basis points
     uint256 public constant FEE_PERCENT = 10_00;
 
-    /// @notice hundred percent in basis points 
+    /// @notice hundred percent in basis points
     uint256 public constant ONE_HUNDRED_PERCENT = 100_00;
 
     /// @notice The conditional tokens contract
@@ -129,12 +130,7 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
     /// @notice offers mapping
     mapping(uint256 => Offer) public offers;
 
-    constructor(
-            address _conditionalTokens,
-            address _usdc, 
-            address _safeProxyFactory,
-            address _feeRecipient
-    ) {
+    constructor(address _conditionalTokens, address _usdc, address _safeProxyFactory, address _feeRecipient) {
         conditionalTokens = IConditionalTokens(_conditionalTokens);
         usdc = ERC20(_usdc);
         safeProxyFactory = ISafeProxyFactory(_safeProxyFactory);
@@ -187,7 +183,6 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
         uint256 _duration,
         bool _perpetual
     ) external returns (uint256) {
-
         if (_duration == 0) {
             revert InvalidDuration();
         }
@@ -231,8 +226,8 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
 
         offers[offerId] = Offer({
             offerId: offerId,
-            lender: msg.sender, 
-            loanAmount: _loanAmount, 
+            lender: msg.sender,
+            loanAmount: _loanAmount,
             rate: _rate,
             positionIds: _positionIds,
             collateralAmounts: _collateralAmounts,
@@ -240,7 +235,7 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
             duration: _duration,
             startTime: block.timestamp,
             borrowedAmount: 0,
-            perpetual: _perpetual 
+            perpetual: _perpetual
         });
 
         emit LoanOffered(offerId, msg.sender, _loanAmount, _rate);
@@ -268,12 +263,18 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
     /// @notice Accept a loan offer
     /// @param _offerId The offer id
     /// @return The loan id
-    function accept(uint256 _offerId, uint256 _collateralAmount, uint256 _minimumDuration, uint256 _positionId, bool _useProxy) external returns (uint256) {
+    function accept(
+        uint256 _offerId,
+        uint256 _collateralAmount,
+        uint256 _minimumDuration,
+        uint256 _positionId,
+        bool _useProxy
+    ) external returns (uint256) {
         Offer storage _offer = offers[_offerId];
 
         address borrowerWallet = _useProxy ? safeProxyFactory.computeProxyAddress(msg.sender) : msg.sender;
         address lender = _offer.lender;
-        
+
         if (_collateralAmount == 0) {
             revert CollateralAmountIsZero();
         }
@@ -285,7 +286,7 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
         if (!conditionalTokens.isApprovedForAll(borrowerWallet, address(this))) {
             revert CollateralIsNotApproved();
         }
- 
+
         if (lender == address(0)) {
             revert InvalidOffer();
         }
@@ -294,7 +295,7 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
         uint256 positionIndex = 0;
 
         uint256[] memory positionIds = _offer.positionIds;
-        for (uint256 i =0; i < positionIds.length; i++) {
+        for (uint256 i = 0; i < positionIds.length; i++) {
             positionFound = positionFound || positionIds[i] == _positionId;
             positionIndex = i;
             if (positionFound) {
@@ -425,10 +426,9 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
         uint256 fee = _calculateFee(loanAmount, amountOwed);
         uint256 lenderAmount = amountOwed - fee;
 
-        
         if (!loan.isTransfered) {
             Offer storage loanOffer = offers[loan.offerId];
-            if  (loanOffer.perpetual) {
+            if (loanOffer.perpetual) {
                 loanOffer.borrowedAmount -= loan.loanAmount;
             }
         }
@@ -478,7 +478,8 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
             revert InvalidRate();
         }
 
-        uint256 currentInterestRate = InterestLib.ONE + ((block.timestamp - loans[_loanId].callTime) * (MAX_INTEREST - InterestLib.ONE) / AUCTION_DURATION);
+        uint256 currentInterestRate = InterestLib.ONE
+            + ((block.timestamp - loans[_loanId].callTime) * (MAX_INTEREST - InterestLib.ONE) / AUCTION_DURATION);
 
         // _newRate must be less than or equal to the current offered rate
         if (_newRate > currentInterestRate) {
@@ -487,9 +488,7 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
 
         // calculate amount owed on the loan as of callTime
         uint256 loanAmount = loan.loanAmount;
-        uint256 amountOwed = _calculateAmountOwed(
-            loanAmount, loan.rate, loan.callTime - loan.startTime
-        );
+        uint256 amountOwed = _calculateAmountOwed(loanAmount, loan.rate, loan.callTime - loan.startTime);
 
         uint256 loanId = nextLoanId;
         nextLoanId += 1;
@@ -517,7 +516,7 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
 
         if (!isTransfered) {
             Offer storage loanOffer = offers[loan.offerId];
-            if  (loanOffer.perpetual) {
+            if (loanOffer.perpetual) {
                 loanOffer.borrowedAmount -= loan.loanAmount;
             }
         }
@@ -528,7 +527,7 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
         // transfer usdc from the new lender to the old lender and pay fees
         uint256 fee = _calculateFee(loanAmount, amountOwed);
         uint256 lenderAmount = amountOwed - fee;
-        
+
         SafeTransferLib.safeTransferFrom(address(usdc), msg.sender, loan.lender, lenderAmount);
         SafeTransferLib.safeTransferFrom(address(usdc), msg.sender, feeRecipient, fee);
 
@@ -567,9 +566,7 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
         address lenderWallet = _useProxy ? safeProxyFactory.computeProxyAddress(msg.sender) : msg.sender;
 
         // transfer the borrower's collateral to the lender
-        conditionalTokens.safeTransferFrom(
-            address(this), lenderWallet, loan.positionId, loan.collateralAmount, ""
-        );
+        conditionalTokens.safeTransferFrom(address(this), lenderWallet, loan.positionId, loan.collateralAmount, "");
 
         emit LoanReclaimed(_loanId);
     }
@@ -595,11 +592,7 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
     /// @notice Calculate the fee amount
     /// @param _loanAmount The initial usdc amount of the loan
     /// @param _amountOwed The total amount owed on the loan
-    function _calculateFee(uint256 _loanAmount,uint256 _amountOwed)
-        internal
-        pure
-        returns (uint256)
-    {
+    function _calculateFee(uint256 _loanAmount, uint256 _amountOwed) internal pure returns (uint256) {
         if (_amountOwed <= _loanAmount) return 0;
         uint256 yield = _amountOwed - _loanAmount;
         return (yield * FEE_PERCENT) / ONE_HUNDRED_PERCENT;

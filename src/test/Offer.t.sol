@@ -9,11 +9,7 @@ contract PolyLendOfferTest is PolyLendTestHelper {
     uint256[] allPositionIds;
     uint256[] allCollateralAmounts;
 
-
-    function _setUp(
-        uint128 _collateralAmount,
-        uint256 _rate
-    ) internal {
+    function _setUp(uint128 _collateralAmount, uint256 _rate) internal {
         rate = bound(_rate, InterestLib.ONE + 1, polyLend.MAX_INTEREST());
 
         allPositionIds = new uint256[](2);
@@ -32,7 +28,7 @@ contract PolyLendOfferTest is PolyLendTestHelper {
         uint256 _duration
     ) public {
         _setUp(_collateralAmount, _rate);
-        
+
         vm.assume(_loanAmount > 0);
         vm.assume(_minimumLoanAmount < _loanAmount);
         vm.assume(_duration > 0);
@@ -42,14 +38,14 @@ contract PolyLendOfferTest is PolyLendTestHelper {
         vm.startPrank(lender);
         usdc.mint(lender, _loanAmount);
         usdc.approve(address(polyLend), _loanAmount);
-        
+
         vm.expectEmit();
         emit LoanOffered(0, lender, _loanAmount, rate);
         polyLend.offer(_loanAmount, rate, allPositionIds, allCollateralAmounts, _minimumLoanAmount, _duration, false);
         vm.stopPrank();
 
         Offer memory offer = _getOffer(0);
-        
+
         assertEq(offer.lender, lender);
         assertEq(offer.loanAmount, _loanAmount);
         assertEq(offer.rate, rate);
@@ -66,7 +62,6 @@ contract PolyLendOfferTest is PolyLendTestHelper {
         assertEq(offer.collateralAmounts[0], _collateralAmount);
         assertEq(offer.collateralAmounts[1], _collateralAmount);
     }
-
 
     function test_revert_PolyLendOfferTest_offer_InvalidDuration_and_LoanAmount(
         uint128 _collateralAmount,
@@ -85,7 +80,7 @@ contract PolyLendOfferTest is PolyLendTestHelper {
         vm.assume(_duration <= 60 days);
 
         uint256 balance = bound(_balance, 0, _loanAmount - 1);
-        
+
         vm.startPrank(lender);
         usdc.mint(lender, balance);
         vm.stopPrank();

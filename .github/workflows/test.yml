@@ -1,6 +1,9 @@
 name: test
 
-on: pull_request
+on:
+  push:
+    branches: [main]
+  pull_request:
 
 env:
   FOUNDRY_PROFILE: ci
@@ -27,6 +30,11 @@ jobs:
           forge --version
           forge build --sizes
         id: build
+
+      - name: Run Forge format check
+        run: |
+          forge fmt --check
+        id: format
 
       - name: Run Forge tests
         run: |

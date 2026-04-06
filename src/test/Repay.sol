@@ -9,7 +9,14 @@ contract PolyLendRepayTest is PolyLendTestHelper {
     uint256 rate;
     uint256 offerId;
 
-    function _setUp(uint128 _collateralAmount, uint128 _loanAmount, uint256 _rate, uint256 _minimumLoanAmount, uint256 _duration, uint256 _minimumDuration) internal {
+    function _setUp(
+        uint128 _collateralAmount,
+        uint128 _loanAmount,
+        uint256 _rate,
+        uint256 _minimumLoanAmount,
+        uint256 _duration,
+        uint256 _minimumDuration
+    ) internal {
         vm.assume(_collateralAmount > 0);
         vm.assume(_duration <= 60 days);
         vm.assume(_loanAmount > 1_000_000);
@@ -36,7 +43,8 @@ contract PolyLendRepayTest is PolyLendTestHelper {
         uint256[] memory collateralAmounts = new uint256[](2);
         collateralAmounts[0] = _collateralAmount;
         collateralAmounts[1] = _collateralAmount;
-        offerId = polyLend.offer(_loanAmount, rate, positionIds, collateralAmounts, _minimumLoanAmount, _duration, false);
+        offerId =
+            polyLend.offer(_loanAmount, rate, positionIds, collateralAmounts, _minimumLoanAmount, _duration, false);
         vm.stopPrank();
 
         vm.startPrank(borrower);
@@ -58,7 +66,7 @@ contract PolyLendRepayTest is PolyLendTestHelper {
         skip(duration);
 
         uint256 amountOwed = polyLend.getAmountOwed(loanId, paybackTime);
-        uint256 fee = (amountOwed - _loanAmount) / 10 ;
+        uint256 fee = (amountOwed - _loanAmount) / 10;
 
         vm.startPrank(borrower);
         usdc.mint(borrower, amountOwed - usdc.balanceOf(borrower));
@@ -99,7 +107,7 @@ contract PolyLendRepayTest is PolyLendTestHelper {
 
         skip(auctionDuration);
         uint256 amountOwed = polyLend.getAmountOwed(loanId, callTime);
-        uint256 fee = (amountOwed - _loanAmount) / 10 ;
+        uint256 fee = (amountOwed - _loanAmount) / 10;
 
         vm.startPrank(borrower);
         usdc.mint(borrower, amountOwed - usdc.balanceOf(borrower));
@@ -136,7 +144,7 @@ contract PolyLendRepayTest is PolyLendTestHelper {
         // note that the loan _can_ be paid for a future timestamp
         uint256 repayTimestamp = bound(_repayTimestamp, block.timestamp - polyLend.PAYBACK_BUFFER(), block.timestamp);
         uint256 amountOwed = polyLend.getAmountOwed(loanId, repayTimestamp);
-        uint256 fee = (amountOwed - _loanAmount) / 10 ;
+        uint256 fee = (amountOwed - _loanAmount) / 10;
 
         vm.startPrank(borrower);
         usdc.mint(borrower, amountOwed - usdc.balanceOf(borrower));

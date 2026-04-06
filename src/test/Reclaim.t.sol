@@ -44,7 +44,8 @@ contract PolyLendReclaimTest is PolyLendTestHelper {
         uint256[] memory collateralAmounts = new uint256[](2);
         collateralAmounts[0] = _collateralAmount;
         collateralAmounts[1] = _collateralAmount;
-        uint256 offerId = polyLend.offer(_loanAmount, rate, positionIds, collateralAmounts, _minimumLoanAmount, _duration, false);
+        uint256 offerId =
+            polyLend.offer(_loanAmount, rate, positionIds, collateralAmounts, _minimumLoanAmount, _duration, false);
         vm.stopPrank();
 
         vm.startPrank(borrower);
@@ -180,7 +181,7 @@ contract PolyLendReclaimTest is PolyLendTestHelper {
             vm.assume(_duration <= 60 days);
             vm.assume(_minimumDuration > 0);
             vm.assume(_minimumDuration <= _duration);
-            
+
             uint256 duration = bound(_duration, _minimumDuration, 60 days);
             uint256 auctionLength = bound(_auctionLength, polyLend.AUCTION_DURATION() + 1, type(uint32).max);
 
@@ -201,7 +202,8 @@ contract PolyLendReclaimTest is PolyLendTestHelper {
             uint256[] memory collateralAmounts = new uint256[](2);
             collateralAmounts[0] = _collateralAmount;
             collateralAmounts[1] = _collateralAmount;
-            uint256 offerId = polyLend.offer(_loanAmount, rate, positionIds, collateralAmounts, _minimumLoanAmount, _duration, false);
+            uint256 offerId =
+                polyLend.offer(_loanAmount, rate, positionIds, collateralAmounts, _minimumLoanAmount, _duration, false);
             vm.stopPrank();
 
             vm.startPrank(borrower);
