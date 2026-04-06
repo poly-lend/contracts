@@ -212,10 +212,6 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
             revert InvalidPositionList();
         }
 
-        if(_positionIds.length == 0) {
-            revert EmptyPositionList();
-        }
-
         if (_positionIds.length != _collateralAmounts.length) {
             revert InvalidCollateralAmounts();
         }
@@ -441,6 +437,9 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
             revert InsufficientAllowance();
         }
 
+        // cancel loan before external calls (CEI pattern)
+        loan.borrower = address(0);
+
         // transfer usdc from the borrower to the lender and fee recipient
         SafeTransferLib.safeTransferFrom(address(usdc), msg.sender, loan.lender, lenderAmount);
         SafeTransferLib.safeTransferFrom(address(usdc), msg.sender, feeRecipient, fee);
@@ -449,9 +448,6 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
         conditionalTokens.safeTransferFrom(
             address(this), loan.borrowerWallet, loan.positionId, loan.collateralAmount, ""
         );
-
-        // cancel loan
-        loan.borrower = address(0);
 
         emit LoanRepaid(_loanId, loan.offerId);
     }
