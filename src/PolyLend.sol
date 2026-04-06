@@ -10,33 +10,57 @@ import {InterestLib} from "./InterestLib.sol";
 
 /// @notice Loan struct
 struct Loan {
+    /// @notice The unique identifier for this loan
     uint256 loanId;
+    /// @notice The borrower's address (set to address(0) when loan is closed)
     address borrower;
+    /// @notice The wallet holding the borrower's collateral (may be a Safe proxy)
     address borrowerWallet;
+    /// @notice The lender's address
     address lender;
+    /// @notice The conditional token position id used as collateral
     uint256 positionId;
+    /// @notice The amount of conditional tokens locked as collateral
     uint256 collateralAmount;
+    /// @notice The USDC amount of the loan
     uint256 loanAmount;
+    /// @notice The per-second compound interest rate
     uint256 rate;
+    /// @notice The timestamp when the loan was created
     uint256 startTime;
+    /// @notice The minimum duration before the lender can call the loan
     uint256 minimumDuration;
+    /// @notice The timestamp when the loan was called (0 if not called)
     uint256 callTime;
+    /// @notice The id of the offer this loan was created from
     uint256 offerId;
+    /// @notice Whether this loan was created via a transfer (not the original offer)
     bool isTransfered;
 }
 
 /// @notice Offer struct
 struct Offer {
+    /// @notice The unique identifier for this offer
     uint256 offerId;
+    /// @notice The lender's address (set to address(0) when offer is canceled)
     address lender;
+    /// @notice The maximum USDC amount available to borrow
     uint256 loanAmount;
+    /// @notice The per-second compound interest rate
     uint256 rate;
+    /// @notice The minimum USDC amount a borrower must take per loan
     uint256 minimumLoanAmount;
+    /// @notice The duration window (in seconds) during which the offer can be accepted
     uint256 duration;
+    /// @notice The timestamp when the offer was created
     uint256 startTime;
+    /// @notice The total USDC amount currently borrowed from this offer
     uint256 borrowedAmount;
+    /// @notice The conditional token position ids accepted as collateral
     uint256[] positionIds;
+    /// @notice The maximum collateral amount for each position id (determines loan-to-collateral ratio)
     uint256[] collateralAmounts;
+    /// @notice Whether the offer replenishes after loans are repaid
     bool perpetual;
 }
 
@@ -106,7 +130,7 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
     /// @notice The conditional tokens contract
     IConditionalTokens public immutable conditionalTokens;
 
-    /// @notice The conditional tokens contract
+    /// @notice The Safe proxy factory contract for computing proxy addresses
     ISafeProxyFactory public immutable safeProxyFactory;
 
     /// @notice The USDC token contract
@@ -165,14 +189,14 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
                                  OFFER
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Submit a loan offer for a request
-    /// @param _loanAmount The usdc amount of the loan
-    /// @param _rate The interest rate of the loan
-    /// @param _positionIds Array of position IDs
-    /// @param _collateralAmounts Array of collateral amounts
-    /// @param _minimumLoanAmount Minimum amount to borrow from this offer
-    /// @param _duration Duration to what time the loan could be borrowed
-    /// @param _perpetual IF the offer can be used again
+    /// @notice Submit a loan offer
+    /// @param _loanAmount The maximum USDC amount available to borrow
+    /// @param _rate The per-second compound interest rate (must be > ONE and <= MAX_INTEREST)
+    /// @param _positionIds Array of conditional token position IDs accepted as collateral
+    /// @param _collateralAmounts Array of maximum collateral amounts corresponding to each position
+    /// @param _minimumLoanAmount The minimum USDC amount a borrower must take per loan
+    /// @param _duration The time window (in seconds) during which the offer can be accepted
+    /// @param _perpetual Whether the offer replenishes its capacity after loans are repaid
     /// @return The offer id
     function offer(
         uint256 _loanAmount,
@@ -243,7 +267,8 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
         return offerId;
     }
 
-    /// @notice Cancel a loan offer
+    /// @notice Cancel a loan offer by zeroing the lender address
+    /// @notice Only the lender who created the offer can cancel it
     /// @param _id The offer id
     function cancelOffer(uint256 _id) public {
         Offer storage _offer = offers[_id];
@@ -260,8 +285,13 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
                                  ACCEPT
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Accept a loan offer
+    /// @notice Accept a loan offer by depositing collateral and receiving USDC
+    /// @notice The loan amount is proportional to collateral provided vs the offer's collateral amount
     /// @param _offerId The offer id
+    /// @param _collateralAmount The amount of conditional tokens to deposit as collateral
+    /// @param _minimumDuration The minimum time (in seconds) before the lender can call the loan
+    /// @param _positionId The conditional token position id to use as collateral
+    /// @param _useProxy Whether the borrower's collateral is held in a Safe proxy wallet
     /// @return The loan id
     function accept(
         uint256 _offerId,
@@ -291,6 +321,7 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
             revert InvalidOffer();
         }
 
+        // find the position in the offer's accepted positions list
         bool positionFound = false;
         uint256 positionIndex = 0;
 
@@ -307,22 +338,26 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
             revert InvalidPosition();
         }
 
+        // collateral must not exceed the offer's max for this position
         uint256 offerCollateralAmount = _offer.collateralAmounts[positionIndex];
 
         if (offerCollateralAmount < _collateralAmount) {
             revert InvalidCollateralAmount();
         }
 
+        // minimum duration must not extend beyond the offer's time window
         if (block.timestamp + _minimumDuration > _offer.startTime + _offer.duration) {
             revert InvalidMinimumDuration();
         }
 
+        // calculate loan amount proportional to collateral provided
         uint256 loanAmount = (_collateralAmount * _offer.loanAmount) / offerCollateralAmount;
 
         if (loanAmount < _offer.minimumLoanAmount || loanAmount > _offer.loanAmount) {
             revert InvalidLoanAmount();
         }
 
+        // ensure enough capacity remains in the offer
         if (loanAmount > _offer.loanAmount - _offer.borrowedAmount) {
             revert LoanAmountExceedsLimit();
         }
@@ -347,9 +382,10 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
             isTransfered: false
         });
 
+        // track borrowed amount against the offer's capacity
         _offer.borrowedAmount += loanAmount;
 
-        // transfer the borrowers collateral to address(this)
+        // transfer the borrower's collateral to this contract
         conditionalTokens.safeTransferFrom(borrowerWallet, address(this), _positionId, _collateralAmount, "");
 
         // transfer usdc from the lender to the borrower
@@ -364,10 +400,15 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
                                   CALL
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Call a loan
+    /// @notice Call a loan, starting the auction for transfer or reclaim
+    /// @notice Only the lender can call, and only after the minimum duration has passed
+    /// @notice Once called, the borrower can repay at the call time rate, or a new lender
+    /// @notice can transfer the loan during the AUCTION_DURATION window
     /// @param _loanId The id of the loan
     function call(uint256 _loanId) external {
         Loan storage loan = loans[_loanId];
+
+        // loan must exist (borrower != address(0) means active)
         if (loan.borrower == address(0)) {
             revert InvalidLoan();
         }
@@ -376,10 +417,12 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
             revert OnlyLender();
         }
 
+        // lender must wait for the agreed minimum duration before calling
         if (block.timestamp < loan.startTime + loan.minimumDuration) {
             revert MinimumDurationHasNotPassed();
         }
 
+        // loan can only be called once
         if (loan.callTime != 0) {
             revert LoanIsCalled();
         }
@@ -426,6 +469,7 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
         uint256 fee = _calculateFee(loanAmount, amountOwed);
         uint256 lenderAmount = amountOwed - fee;
 
+        // restore perpetual offer capacity if this is the original loan (not transferred)
         if (!loan.isTransfered) {
             Offer storage loanOffer = offers[loan.offerId];
             if (loanOffer.perpetual) {
@@ -440,11 +484,11 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
         // cancel loan before external calls (CEI pattern)
         loan.borrower = address(0);
 
-        // transfer usdc from the borrower to the lender and fee recipient
+        // pay the lender (minus protocol fee) and the fee recipient
         SafeTransferLib.safeTransferFrom(address(usdc), msg.sender, loan.lender, lenderAmount);
         SafeTransferLib.safeTransferFrom(address(usdc), msg.sender, feeRecipient, fee);
 
-        // transfer the borrowers collateral back to the borrower's wallet
+        // return the borrower's collateral
         conditionalTokens.safeTransferFrom(
             address(this), loan.borrowerWallet, loan.positionId, loan.collateralAmount, ""
         );
@@ -456,48 +500,57 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
                                 TRANSFER
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Transfer a called loan to a new lender
-    /// @notice The new lender must offer a rate less than or equal to the current rate
+    /// @notice Transfer a called loan to a new lender via Dutch auction
+    /// @notice The auction starts at the call time and lasts AUCTION_DURATION
+    /// @notice The acceptable interest rate increases linearly from ONE to MAX_INTEREST
+    /// @notice over the auction window, allowing new lenders to bid as the rate rises
     /// @param _loanId The loan id
-    /// @param _newRate The new interest rate
+    /// @param _newRate The new interest rate for the transferred loan
     function transfer(uint256 _loanId, uint256 _newRate) external {
         Loan storage loan = loans[_loanId];
+
+        // loan must exist
         if (loan.borrower == address(0)) {
             revert InvalidLoan();
         }
 
+        // loan must have been called to start the auction
         if (loan.callTime == 0) {
             revert LoanIsNotCalled();
         }
 
+        // auction must still be active
         if (block.timestamp > loan.callTime + AUCTION_DURATION) {
             revert AuctionHasEnded();
         }
 
+        // new rate must be within valid bounds
         if (_newRate < InterestLib.ONE || _newRate > MAX_INTEREST) {
             revert InvalidRate();
         }
 
+        // compute the current auction rate (increases linearly over the auction window)
         uint256 currentInterestRate = InterestLib.ONE
             + ((block.timestamp - loans[_loanId].callTime) * (MAX_INTEREST - InterestLib.ONE) / AUCTION_DURATION);
 
-        // _newRate must be less than or equal to the current offered rate
+        // new lender must offer a rate at or below the current auction rate
         if (_newRate > currentInterestRate) {
             revert InvalidRate();
         }
 
-        // calculate amount owed on the loan as of callTime
+        // calculate amount owed on the loan as of callTime (interest stops accruing at call)
         uint256 loanAmount = loan.loanAmount;
         uint256 amountOwed = _calculateAmountOwed(loanAmount, loan.rate, loan.callTime - loan.startTime);
 
         uint256 loanId = nextLoanId;
         nextLoanId += 1;
 
+        // cache values before modifying storage
         address borrower = loan.borrower;
         address borrowerWallet = loan.borrowerWallet;
         bool isTransfered = loan.isTransfered;
 
-        // create new loan
+        // create new loan with the new lender and rate
         loans[loanId] = Loan({
             loanId: loanId,
             borrower: borrower,
@@ -514,6 +567,7 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
             isTransfered: true
         });
 
+        // restore perpetual offer capacity if this is the original loan (not already transferred)
         if (!isTransfered) {
             Offer storage loanOffer = offers[loan.offerId];
             if (loanOffer.perpetual) {
@@ -521,10 +575,10 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
             }
         }
 
-        // cancel the old loan
+        // cancel the old loan before external calls (CEI pattern)
         loan.borrower = address(0);
 
-        // transfer usdc from the new lender to the old lender and pay fees
+        // pay the old lender (minus protocol fee) from the new lender
         uint256 fee = _calculateFee(loanAmount, amountOwed);
         uint256 lenderAmount = amountOwed - fee;
 
@@ -538,12 +592,15 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
                                 RECLAIM
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Reclaim a called loan after the auction ends
-    /// @notice and the loan has not been transferred
-    /// @notice The lender will receive the borrower's collateral
+    /// @notice Reclaim a called loan after the auction ends without a transfer
+    /// @notice The lender seizes the borrower's collateral as compensation
+    /// @notice Only callable after AUCTION_DURATION has passed since the call
     /// @param _loanId The loan id
+    /// @param _useProxy Whether to send collateral to the lender's Safe proxy wallet
     function reclaim(uint256 _loanId, bool _useProxy) external {
         Loan storage loan = loans[_loanId];
+
+        // loan must exist
         if (loan.borrower == address(0)) {
             revert InvalidLoan();
         }
@@ -552,20 +609,22 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
             revert OnlyLender();
         }
 
+        // loan must have been called
         if (loan.callTime == 0) {
             revert LoanIsNotCalled();
         }
 
+        // auction must have ended without a transfer
         if (block.timestamp <= loan.callTime + AUCTION_DURATION) {
             revert AuctionHasNotEnded();
         }
 
-        // cancel the loan
+        // cancel the loan before external calls (CEI pattern)
         loan.borrower = address(0);
 
         address lenderWallet = _useProxy ? safeProxyFactory.computeProxyAddress(msg.sender) : msg.sender;
 
-        // transfer the borrower's collateral to the lender
+        // transfer the borrower's collateral to the lender as compensation
         conditionalTokens.safeTransferFrom(address(this), lenderWallet, loan.positionId, loan.collateralAmount, "");
 
         emit LoanReclaimed(_loanId);
@@ -575,11 +634,12 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
                                 INTERNAL
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Calculate the amount owed on a loan
-    /// @param _loanAmount The initial usdc amount of the loan
-    /// @param _rate The interest rate of the loan
-    /// @param _loanDuration The duration of the loan
-    /// @return The total amount owed on the loan
+    /// @notice Calculate the amount owed on a loan using compound interest
+    /// @notice Uses exponentiation by squaring via InterestLib.pow
+    /// @param _loanAmount The initial USDC amount of the loan
+    /// @param _rate The per-second compound interest rate
+    /// @param _loanDuration The duration of the loan in seconds
+    /// @return The total amount owed (principal + accrued interest)
     function _calculateAmountOwed(uint256 _loanAmount, uint256 _rate, uint256 _loanDuration)
         internal
         pure
@@ -589,9 +649,11 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
         return _loanAmount * interestMultiplier / InterestLib.ONE;
     }
 
-    /// @notice Calculate the fee amount
-    /// @param _loanAmount The initial usdc amount of the loan
-    /// @param _amountOwed The total amount owed on the loan
+    /// @notice Calculate the protocol fee as a percentage of yield (interest earned)
+    /// @notice Returns 0 if there is no yield (amountOwed <= loanAmount)
+    /// @param _loanAmount The initial USDC amount of the loan
+    /// @param _amountOwed The total amount owed on the loan (principal + interest)
+    /// @return The protocol fee amount
     function _calculateFee(uint256 _loanAmount, uint256 _amountOwed) internal pure returns (uint256) {
         if (_amountOwed <= _loanAmount) return 0;
         uint256 yield = _amountOwed - _loanAmount;
