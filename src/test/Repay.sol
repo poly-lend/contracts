@@ -60,7 +60,7 @@ contract PolyLendRepayTest is PolyLendTestHelper {
         uint256 _duration
     ) public {
         _setUp(_collateralAmount, _loanAmount, _rate, 0, _duration, _minimumDuration);
-        uint256 duration = bound(_minimumDuration, 0, 60 days);
+        uint256 duration = bound(_minimumDuration, 1 days, 60 days);
 
         uint256 paybackTime = block.timestamp + duration;
         skip(duration);
@@ -95,7 +95,7 @@ contract PolyLendRepayTest is PolyLendTestHelper {
     ) public {
         _setUp(_collateralAmount, _loanAmount, _rate, 0, _duration, _minimumDuration);
 
-        uint256 duration = bound(_duration, _minimumDuration, 90 days);
+        uint256 duration = bound(_duration, _minimumDuration > 1 days ? _minimumDuration : 1 days, 90 days);
         uint256 auctionDuration = bound(_auctionDuration, 0, polyLend.AUCTION_DURATION());
 
         uint256 callTime = block.timestamp + duration;
@@ -134,14 +134,13 @@ contract PolyLendRepayTest is PolyLendTestHelper {
         uint256 _duration,
         uint256 _repayTimestamp
     ) public {
-        vm.assume(_minimumDuration > polyLend.PAYBACK_BUFFER());
-        _setUp(_collateralAmount, _loanAmount, _rate, 0, _duration, _minimumDuration);
+        uint256 minDuration = bound(_minimumDuration, 1 days + polyLend.PAYBACK_BUFFER() + 1, 30 days);
+        uint256 duration = bound(_duration, minDuration, 60 days);
+        _setUp(_collateralAmount, _loanAmount, _rate, 0, duration, minDuration);
 
-        uint256 duration = bound(_duration, _minimumDuration, 60 days);
         skip(duration);
 
-        // allowed repayTimestamps
-        // note that the loan _can_ be paid for a future timestamp
+        // repayTimestamp must be within PAYBACK_BUFFER of current time
         uint256 repayTimestamp = bound(_repayTimestamp, block.timestamp - polyLend.PAYBACK_BUFFER(), block.timestamp);
         uint256 amountOwed = polyLend.getAmountOwed(loanId, repayTimestamp);
         uint256 fee = (amountOwed - _loanAmount) / 10;
@@ -169,7 +168,7 @@ contract PolyLendRepayTest is PolyLendTestHelper {
         uint256 _duration
     ) public {
         _setUp(_collateralAmount, _loanAmount, _rate, 0, _duration, _minimumDuration);
-        uint256 duration = bound(_duration, 0, 60 days);
+        uint256 duration = bound(_duration, 1 days, 60 days);
 
         uint256 paybackTime = block.timestamp + duration;
         skip(duration);
@@ -215,13 +214,16 @@ contract PolyLendRepayTest is PolyLendTestHelper {
         uint256 _duration,
         uint32 _repayTimestamp
     ) public {
-        vm.assume(_minimumDuration > polyLend.PAYBACK_BUFFER());
-        _setUp(_collateralAmount, _loanAmount, _rate, 0, _duration, _minimumDuration);
+        uint256 minDuration = bound(_minimumDuration, 1 days + polyLend.PAYBACK_BUFFER() + 2, 30 days);
+        uint256 duration = bound(_duration, minDuration, 60 days);
+        _setUp(_collateralAmount, _loanAmount, _rate, 0, duration, minDuration);
 
-        uint256 duration = bound(_duration, _minimumDuration, 60 days);
         skip(duration);
 
-        uint256 repayTimestamp = bound(_repayTimestamp, 0, block.timestamp - polyLend.PAYBACK_BUFFER() - 1);
+        // repayTimestamp is past MINIMUM_LOAN_DURATION but outside PAYBACK_BUFFER window
+        uint256 minRepay = 1 + 1 days; // startTime(1) + MINIMUM_LOAN_DURATION
+        uint256 maxRepay = block.timestamp - polyLend.PAYBACK_BUFFER() - 1;
+        uint256 repayTimestamp = bound(_repayTimestamp, minRepay, maxRepay);
 
         vm.startPrank(borrower);
         vm.expectRevert(InvalidRepayTimestamp.selector);
@@ -238,12 +240,15 @@ contract PolyLendRepayTest is PolyLendTestHelper {
         uint256 _duration,
         uint32 _repayTime
     ) public {
-        _setUp(_collateralAmount, _loanAmount, _rate, 0, _duration, _minimumDuration);
+        uint256 minDuration = bound(_minimumDuration, 1 days, 30 days);
+        uint256 duration = bound(_duration, minDuration, 60 days);
+        _setUp(_collateralAmount, _loanAmount, _rate, 0, duration, minDuration);
 
-        uint256 duration = bound(_duration, _minimumDuration, 60 days);
         uint256 callTime = block.timestamp + duration;
 
-        vm.assume(_repayTime != callTime);
+        // _repayTime must differ from callTime and pass MINIMUM_LOAN_DURATION check
+        uint256 repayTime = bound(_repayTime, 1 + 1 days, type(uint32).max);
+        vm.assume(repayTime != callTime);
 
         skip(duration);
 
@@ -255,7 +260,7 @@ contract PolyLendRepayTest is PolyLendTestHelper {
 
         vm.startPrank(borrower);
         vm.expectRevert(InvalidRepayTimestamp.selector);
-        polyLend.repay(loanId, _repayTime);
+        polyLend.repay(loanId, repayTime);
         vm.stopPrank();
     }
 
@@ -268,7 +273,7 @@ contract PolyLendRepayTest is PolyLendTestHelper {
         uint256 _allowance
     ) public {
         _setUp(_collateralAmount, _loanAmount, _rate, 0, _duration, _minimumDuration);
-        uint256 duration = bound(_duration, 0, 60 days);
+        uint256 duration = bound(_duration, 1 days, 60 days);
 
         uint256 paybackTime = block.timestamp + duration;
         skip(duration);
@@ -280,6 +285,25 @@ contract PolyLendRepayTest is PolyLendTestHelper {
         usdc.mint(borrower, amountOwed);
         usdc.approve(address(polyLend), allowance);
         vm.expectRevert(InsufficientAllowance.selector);
+        polyLend.repay(loanId, paybackTime);
+        vm.stopPrank();
+    }
+
+    /// @dev Reverts if repay is attempted before MINIMUM_LOAN_DURATION
+    function test_revert_PolyLendRepayTest_repay_MinimumLoanDurationNotMet(
+        uint64 _collateralAmount,
+        uint128 _loanAmount,
+        uint256 _rate,
+        uint256 _minimumDuration,
+        uint256 _duration
+    ) public {
+        _setUp(_collateralAmount, _loanAmount, _rate, 0, _duration, _minimumDuration);
+
+        // repay before minimum loan duration has passed
+        uint256 paybackTime = block.timestamp;
+
+        vm.startPrank(borrower);
+        vm.expectRevert(MinimumLoanDurationNotMet.selector);
         polyLend.repay(loanId, paybackTime);
         vm.stopPrank();
     }

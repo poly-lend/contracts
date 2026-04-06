@@ -151,7 +151,7 @@ contract PolyLendCallTest is PolyLendTestHelper {
         uint256 _minimumDuration
     ) public {
         _setUp(_collateralAmount, _loanAmount, _rate, _minimumLoanAmount, _duration, _minimumDuration);
-        uint256 duration = bound(_duration, _minimumDuration, 60 days);
+        uint256 duration = bound(_duration, _minimumDuration > 1 days ? _minimumDuration : 1 days, 60 days);
 
         uint256 paybackTime = block.timestamp + duration;
         skip(duration);

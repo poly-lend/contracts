@@ -80,14 +80,17 @@ contract PolyLendTransferTest is PolyLendTestHelper {
 
         {
             uint256 duration = bound(_duration, _minimumDuration, 60 days);
-            uint256 auctionLength = bound(_auctionLength, 0, polyLend.AUCTION_DURATION());
+            uint256 auctionLength = bound(_auctionLength, 1, polyLend.AUCTION_DURATION());
             loanId = _setUp(_collateralAmount, _loanAmount, _rate, 0, duration, _minimumDuration);
 
             callTime = block.timestamp;
             skip(auctionLength);
         }
 
-        uint256 newRate = bound(_newRate, InterestLib.ONE, _getNewRate(callTime));
+        uint256 currentRate = _getNewRate(callTime);
+        // auctionLength >= 1 so currentRate > ONE, but ensure it's > ONE + 1 for valid bound
+        if (currentRate <= InterestLib.ONE + 1) currentRate = InterestLib.ONE + 2;
+        uint256 newRate = bound(_newRate, InterestLib.ONE + 1, currentRate);
         uint256 newLoanId = loanId + 1;
 
         uint256 amountOwed = polyLend.getAmountOwed(loanId, callTime);

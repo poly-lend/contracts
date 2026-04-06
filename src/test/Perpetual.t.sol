@@ -14,7 +14,7 @@ contract PolyLendPerpetualTest is PolyLendTestHelper {
     {
         vm.assume(_collateralAmount > 0);
         vm.assume(_loanAmount > 1_000_000);
-        vm.assume(_duration > 0);
+        vm.assume(_duration > 2 days);
         vm.assume(_duration <= 60 days);
 
         rate = bound(_rate, InterestLib.ONE + 1, polyLend.MAX_INTEREST());
@@ -57,7 +57,8 @@ contract PolyLendPerpetualTest is PolyLendTestHelper {
         Offer memory offerAfterAccept = _getOffer(offerId);
         assertEq(offerAfterAccept.borrowedAmount, _loanAmount);
 
-        // repay immediately
+        // skip minimum loan duration before repaying
+        skip(1 days);
         uint256 paybackTime = block.timestamp;
         uint256 amountOwed = polyLend.getAmountOwed(loanId, paybackTime);
 
@@ -137,7 +138,8 @@ contract PolyLendPerpetualTest is PolyLendTestHelper {
         uint256 loanId1 = polyLend.accept(offerId, _collateralAmount, 0, positionId0, false);
         vm.stopPrank();
 
-        // repay
+        // skip minimum loan duration before repaying
+        skip(1 days);
         uint256 paybackTime = block.timestamp;
         uint256 amountOwed = polyLend.getAmountOwed(loanId1, paybackTime);
 
@@ -172,7 +174,7 @@ contract PolyLendPerpetualTest is PolyLendTestHelper {
     ) public {
         vm.assume(_collateralAmount > 0);
         vm.assume(_loanAmount > 1_000_000);
-        vm.assume(_duration > 0);
+        vm.assume(_duration > 2 days);
         vm.assume(_duration <= 60 days);
 
         rate = bound(_rate, InterestLib.ONE + 1, polyLend.MAX_INTEREST());
@@ -198,6 +200,8 @@ contract PolyLendPerpetualTest is PolyLendTestHelper {
         uint256 loanId = polyLend.accept(nonPerpetualOfferId, _collateralAmount, 0, positionId0, false);
         vm.stopPrank();
 
+        // skip minimum loan duration before repaying
+        skip(1 days);
         uint256 paybackTime = block.timestamp;
         uint256 amountOwed = polyLend.getAmountOwed(loanId, paybackTime);
 

@@ -104,6 +104,7 @@ interface IPolyLend {
     error MinimumDurationHasNotPassed();
     error AuctionHasEnded();
     error AuctionHasNotEnded();
+    error MinimumLoanDurationNotMet();
 }
 
 /// @title PolyLend
@@ -120,6 +121,9 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
 
     /// @notice buffer for payback time
     uint256 public constant PAYBACK_BUFFER = 1 minutes;
+
+    /// @notice minimum loan duration before repay is allowed
+    uint256 public constant MINIMUM_LOAN_DURATION = 1 days;
 
     /// @notice protocol fee from lenders yield in basis points
     uint256 public constant FEE_PERCENT = 10_00;
@@ -165,7 +169,7 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
     /// @param _loanId The id of the loan
     /// @param _paybackTime The time at which the loan will be paid back
     /// @return The amount owed on the loan
-    function getAmountOwed(uint256 _loanId, uint256 _paybackTime) public view returns (uint256) {
+    function getAmountOwed(uint256 _loanId, uint256 _paybackTime) external view returns (uint256) {
         Loan memory loan = loans[_loanId];
         uint256 loanDuration = _paybackTime - loan.startTime;
         return _calculateAmountOwed(loan.loanAmount, loan.rate, loanDuration);
@@ -353,7 +357,7 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
         // calculate loan amount proportional to collateral provided
         uint256 loanAmount = (_collateralAmount * _offer.loanAmount) / offerCollateralAmount;
 
-        if (loanAmount < _offer.minimumLoanAmount || loanAmount > _offer.loanAmount) {
+        if (loanAmount < _offer.minimumLoanAmount) {
             revert InvalidLoanAmount();
         }
 
@@ -448,6 +452,11 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
             revert OnlyBorrower();
         }
 
+        // loan must have existed for at least MINIMUM_LOAN_DURATION
+        if (_repayTimestamp < loan.startTime + MINIMUM_LOAN_DURATION) {
+            revert MinimumLoanDurationNotMet();
+        }
+
         // if the loan has not been called,
         // _repayTimestamp can be up to PAYBACK_BUFFER seconds in the past
         if (loan.callTime == 0) {
@@ -524,8 +533,8 @@ contract PolyLend is IPolyLend, ERC1155TokenReceiver {
             revert AuctionHasEnded();
         }
 
-        // new rate must be within valid bounds
-        if (_newRate < InterestLib.ONE || _newRate > MAX_INTEREST) {
+        // new rate must be within valid bounds (must be > ONE, matching offer validation)
+        if (_newRate <= InterestLib.ONE || _newRate > MAX_INTEREST) {
             revert InvalidRate();
         }
 
