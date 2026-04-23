@@ -2,6 +2,9 @@
 cache/
 out/
 
+# Generated deployment artifacts (template-based pipeline lands in #25)
+deployments/
+
 # Ignores development broadcast logs
 !/broadcast
 /broadcast/*/31337/

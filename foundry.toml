@@ -10,7 +10,10 @@ via_ir = true
 solc = "0.8.30"
 evm_version = "Cancun"
 
-fs_permissions = [{ access = "read", path = "./artifacts/"}]
+fs_permissions = [
+    { access = "read", path = "./artifacts/" },
+    { access = "read-write", path = "./deployments/" },
+]
 
 [profile.ci]
 
